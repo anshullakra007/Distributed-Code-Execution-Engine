@@ -1,0 +1,14 @@
+# Ignore Mac system files
+.DS_Store
+
+# Ignore Java build files
+api/target/
+api/.mvn/wrapper/maven-wrapper.jar
+**/*.class
+
+# Ignore Node.js heavy folders (Crucial!)
+client/node_modules/
+client/dist/
+
+# Ignore local config
+.vscode/
