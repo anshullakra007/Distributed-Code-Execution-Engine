@@ -1,12 +1,13 @@
+/* 🟢 PROFESSIONAL VS CODE THEME & LAYOUT */
 :root {
-  --bg-dark: #1e1e1e;       /* VS Code Editor Background */
-  --bg-darker: #181818;     /* Activity Bar / Panels */
+  --bg-main: #1e1e1e;       /* Editor Main Background */
+  --bg-panel: #252526;      /* Side Panel / Navbar */
   --border: #333333;        /* Subtle Border */
   --accent: #007acc;        /* VS Code Blue */
-  --text-main: #d4d4d4;     /* VS Code Default Text */
+  --text-main: #e0e0e0;     /* High Contrast Text */
   --text-dim: #858585;      /* Comments/Secondary */
-  --success: #89d185;       /* Soft Green */
-  --error: #f48771;         /* Soft Red */
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-code: 'Fira Code', 'Consolas', monospace;
 }
 
 * {
@@ -17,149 +18,165 @@ body, html, #root {
   margin: 0;
   padding: 0;
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--bg-dark);
+  width: 100%;
+  background-color: var(--bg-main);
   color: var(--text-main);
-  overflow: hidden; /* Prevent full page scroll */
+  font-family: var(--font-ui);
+  overflow: hidden; /* Prevent scrolling the whole page */
 }
 
+/* 🟢 LAYOUT CONTAINER */
 .app-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  width: 100vw;
 }
 
-/* Navbar: Sleek and Minimal */
+/* 🟢 NAVBAR */
 .navbar {
-  height: 50px;
-  background-color: var(--bg-darker);
+  height: 60px;
+  background-color: var(--bg-panel);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
+  flex-shrink: 0; /* Prevent navbar from shrinking */
 }
 
-.navbar-brand {
-  font-weight: 600;
-  font-size: 16px;
-  color: var(--accent);
-  letter-spacing: 0.5px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.navbar-brand span {
+  font-weight: 700; /* Bold Title */
+  font-size: 18px;
+  color: #fff;
+  letter-spacing: 1px;
 }
 
 .control-group {
   display: flex;
-  gap: 12px;
-  align-items: center;
+  gap: 15px;
 }
 
-/* Professional Dropdown */
 .lang-select {
-  background: var(--bg-dark);
-  color: var(--text-main);
+  background: var(--bg-main);
+  color: #fff;
   border: 1px solid var(--border);
-  padding: 6px 12px;
-  border-radius: 4px;
+  padding: 8px 12px;
+  border-radius: 6px;
   font-size: 14px;
-  outline: none;
+  font-weight: 500;
   cursor: pointer;
+  outline: none;
 }
 
-.lang-select:focus {
-  border-color: var(--accent);
-}
-
-/* Run Button: Proper Button Design */
 .btn-run {
   background-color: var(--accent);
   color: white;
   border: none;
-  padding: 6px 20px;
-  border-radius: 4px;
-  font-weight: 500;
+  padding: 8px 24px;
+  border-radius: 6px;
+  font-weight: 600;
   font-size: 14px;
   cursor: pointer;
-  transition: background 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  letter-spacing: 0.5px;
+  transition: all 0.2s;
 }
 
 .btn-run:hover {
   background-color: #0062a3;
+  transform: translateY(-1px);
 }
 
-.btn-run:disabled {
-  background-color: #4d4d4d;
-  cursor: wait;
-}
-
-/* Main Workspace */
+/* 🟢 MAIN WORKSPACE (Desktop Default) */
 .workspace {
   display: flex;
-  flex: 1;
-  height: calc(100vh - 50px);
+  flex: 1; /* Takes all remaining height */
+  overflow: hidden;
 }
 
+/* Editor takes 65% width */
 .editor-wrapper {
-  flex: 3; /* Give code editor 75% of space */
+  flex: 65; 
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
 }
 
+/* IO Panel takes 35% width */
 .io-wrapper {
-  flex: 1; /* Give I/O 25% of space */
+  flex: 35;
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-darker);
+  background-color: var(--bg-panel);
+  border-left: 1px solid #000;
 }
 
-/* Panels */
+/* 🟢 PANELS */
 .panel {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  border-bottom: 1px solid var(--border);
+  flex: 1; /* Split IO panel 50/50 vertically */
   overflow: hidden;
-}
-
-.panel:last-child {
-  border-bottom: none;
+  border-bottom: 1px solid var(--border);
 }
 
 .panel-title {
-  padding: 8px 15px;
-  font-size: 11px;
-  text-transform: uppercase;
-  font-weight: 600;
+  padding: 10px 15px;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--text-dim);
-  background-color: #252526;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background-color: #2d2d2d;
   border-bottom: 1px solid var(--border);
-  letter-spacing: 0.5px;
 }
 
 .panel-input {
   flex: 1;
-  background-color: var(--bg-dark);
+  background-color: var(--bg-main);
   border: none;
-  color: var(--text-main);
+  color: #fff;
   padding: 15px;
-  font-family: 'Fira Code', 'Consolas', monospace;
+  font-family: var(--font-code);
   font-size: 14px;
+  font-weight: 500; /* Thicker text */
   resize: none;
   outline: none;
+  line-height: 1.5;
 }
 
 .output-area {
   flex: 1;
   padding: 15px;
-  font-family: 'Fira Code', 'Consolas', monospace;
+  font-family: var(--font-code);
   font-size: 14px;
+  font-weight: 500; /* Thicker text */
   white-space: pre-wrap;
   overflow-y: auto;
-  line-height: 1.5;
+  line-height: 1.6;
+}
+
+/* 🟢 RESPONSIVE: MOBILE & TABLET (< 900px) */
+@media (max-width: 900px) {
+  .workspace {
+    flex-direction: column; /* Stack vertically */
+  }
+
+  .editor-wrapper {
+    flex: 2; /* Editor gets 2/3 height */
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .io-wrapper {
+    flex: 1; /* IO gets 1/3 height */
+  }
+  
+  .navbar-brand span {
+    font-size: 14px; /* Smaller title on phone */
+  }
+  
+  .btn-run {
+    padding: 8px 12px;
+  }
 }

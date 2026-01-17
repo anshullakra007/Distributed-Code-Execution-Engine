@@ -90,12 +90,14 @@ function App() {
             value={code}
             onChange={(val) => setCode(val)}
             options={{
-              fontSize: 16,
+              fontSize: 16, // Readable size
+              fontWeight: "600", // Semi-bold text
               fontFamily: "'Fira Code', 'Consolas', monospace",
               minimap: { enabled: false },
               scrollBeyondLastLine: false,
               automaticLayout: true,
-              padding: { top: 20 }
+              padding: { top: 20 },
+              lineHeight: 24
             }}
           />
         </div>
@@ -115,7 +117,7 @@ function App() {
             <div className="panel-title">Output</div>
             <div 
               className="output-area"
-              style={{ color: status === "error" ? "var(--error)" : "var(--success)" }}
+              style={{ color: status === "error" ? "#f48771" : "#89d185" }}
             >
               {output || "Ready to execute."}
             </div>
