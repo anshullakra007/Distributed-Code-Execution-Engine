@@ -16,11 +16,12 @@ public class CodeController {
 
     @PostMapping("/run")
     public String runCode(@RequestBody Map<String, String> payload) {
+        // 🟢 Extract all data from the frontend request
         String language = payload.get("language");
         String code = payload.get("code");
         String input = payload.get("input");
 
-        // 🟢 Pass Language and Input to the service
+        // 🟢 Pass everything to the new Service logic
         return sandboxService.executeCode(language, code, input);
     }
 }

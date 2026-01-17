@@ -9,15 +9,17 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class DockerSandboxService {
 
+    // 🟢 Updated to accept Language and Input directly
     public String executeCode(String language, String code, String input) {
         try {
-            // 1. Create a temporary file
+            // 1. Create a temporary file for the code
             Path codeFile = Files.createTempFile("code", getExtension(language));
             Files.writeString(codeFile, code);
 
             ProcessBuilder pb;
             
-            // 2. Choose the Compiler/Runner based on Language
+            // 2. Choose the right compiler based on language
+            // (We are running these DIRECTLY on the server, not in Docker)
             if (language.equals("cpp")) {
                 Path exeFile = Files.createTempFile("app", ".out");
                 // Compile: g++ code.cpp -o app.out
@@ -31,7 +33,7 @@ public class DockerSandboxService {
                 // Run: python3 code.py
                 pb = new ProcessBuilder("python3", codeFile.toString());
             } else if (language.equals("java")) {
-                // Rename file to Main.java (Java requirement)
+                // Rename file to Main.java (Required for Java)
                 Path javaFile = codeFile.resolveSibling("Main.java");
                 Files.move(codeFile, javaFile);
                 
@@ -40,17 +42,17 @@ public class DockerSandboxService {
                 compile.waitFor();
                 if (compile.exitValue() != 0) return "Compilation Error:\n" + readStream(compile.getErrorStream());
 
-                // Run: java -cp /tmp Main
+                // Run: java -cp . Main
                 pb = new ProcessBuilder("java", "-cp", javaFile.getParent().toString(), "Main");
             } else {
                 return "Error: Language not supported";
             }
 
-            // 3. Execute the Code
+            // 3. Start the process
             pb.redirectErrorStream(true);
             Process process = pb.start();
 
-            // 4. Pass Input (if any)
+            // 4. Pass Input (if provided)
             if (input != null && !input.isEmpty()) {
                 try (OutputStream os = process.getOutputStream()) {
                     os.write(input.getBytes());
@@ -58,7 +60,7 @@ public class DockerSandboxService {
                 }
             }
 
-            // 5. Wait for Output (5 second timeout)
+            // 5. Wait for output (5 second timeout)
             if (!process.waitFor(5, TimeUnit.SECONDS)) {
                 process.destroy();
                 return "Error: Time Limit Exceeded";
