@@ -20,17 +20,17 @@ function App() {
     setStatus("running");
     setOutput("Executing...");
     try {
-      // 1. Send the request
-      const response = await fetch("http://localhost:8080/api/run", {
+      // 🟢 SMART URL: Uses Cloud URL if available, otherwise Localhost
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api/run";
+      
+      const response = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ language, code, input }),
       });
 
-      // 2. Read the response as PLAIN TEXT first (This fixes the crash)
       const rawText = await response.text();
 
-      // 3. Try to parse it as JSON, if that fails, use the text directly
       try {
         const data = JSON.parse(rawText);
         if (data.error) {
@@ -41,7 +41,6 @@ function App() {
           setOutput(data.output || rawText);
         }
       } catch (e) {
-        // If it's not JSON, it's just raw output (like "Hello World")
         setStatus(response.ok ? "success" : "error");
         setOutput(rawText);
       }
