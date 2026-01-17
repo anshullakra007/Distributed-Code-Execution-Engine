@@ -1,42 +1,165 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+:root {
+  --bg-dark: #1e1e1e;       /* VS Code Editor Background */
+  --bg-darker: #181818;     /* Activity Bar / Panels */
+  --border: #333333;        /* Subtle Border */
+  --accent: #007acc;        /* VS Code Blue */
+  --text-main: #d4d4d4;     /* VS Code Default Text */
+  --text-dim: #858585;      /* Comments/Secondary */
+  --success: #89d185;       /* Soft Green */
+  --error: #f48771;         /* Soft Red */
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+* {
+  box-sizing: border-box;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+body, html, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  overflow: hidden; /* Prevent full page scroll */
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
 }
 
-.card {
-  padding: 2em;
+/* Navbar: Sleek and Minimal */
+.navbar {
+  height: 50px;
+  background-color: var(--bg-darker);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
 }
 
-.read-the-docs {
-  color: #888;
+.navbar-brand {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--accent);
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.control-group {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Professional Dropdown */
+.lang-select {
+  background: var(--bg-dark);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+}
+
+.lang-select:focus {
+  border-color: var(--accent);
+}
+
+/* Run Button: Proper Button Design */
+.btn-run {
+  background-color: var(--accent);
+  color: white;
+  border: none;
+  padding: 6px 20px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-run:hover {
+  background-color: #0062a3;
+}
+
+.btn-run:disabled {
+  background-color: #4d4d4d;
+  cursor: wait;
+}
+
+/* Main Workspace */
+.workspace {
+  display: flex;
+  flex: 1;
+  height: calc(100vh - 50px);
+}
+
+.editor-wrapper {
+  flex: 3; /* Give code editor 75% of space */
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.io-wrapper {
+  flex: 1; /* Give I/O 25% of space */
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-darker);
+}
+
+/* Panels */
+.panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.panel:last-child {
+  border-bottom: none;
+}
+
+.panel-title {
+  padding: 8px 15px;
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-dim);
+  background-color: #252526;
+  border-bottom: 1px solid var(--border);
+  letter-spacing: 0.5px;
+}
+
+.panel-input {
+  flex: 1;
+  background-color: var(--bg-dark);
+  border: none;
+  color: var(--text-main);
+  padding: 15px;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+}
+
+.output-area {
+  flex: 1;
+  padding: 15px;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 14px;
+  white-space: pre-wrap;
+  overflow-y: auto;
+  line-height: 1.5;
 }

@@ -2,6 +2,6 @@
 #include <iostream>
 
 int main() {
-    std::cout << "Hello from React!" << std::endl;
+    std::cout << "anshul" << std::endl;
     return 0;
 }

@@ -1,7 +1,7 @@
-// Write C++ code here
 #include <iostream>
+using namespace std;
 
 int main() {
-    std::cout << "Hello from React!" << std::endl;
+    cout << "Hello, Distributed World!" << endl;
     return 0;
 }
