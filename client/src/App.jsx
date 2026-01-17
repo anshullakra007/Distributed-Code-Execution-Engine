@@ -20,8 +20,8 @@ function App() {
     setStatus("running");
     setOutput("Executing...");
     try {
-      // 🟢 SMART URL: Uses Cloud URL if available, otherwise Localhost
-      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api/run";
+      // 🟢 HARDCODED LINK: Forces connection to your specific Render backend
+      const API_URL = "https://code-engine-api-wicb.onrender.com/api/run";
       
       const response = await fetch(API_URL, {
         method: "POST",
