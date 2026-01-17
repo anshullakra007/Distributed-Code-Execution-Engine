@@ -1,21 +1,22 @@
-# 1. Use Java 21 (Required for your Spring Boot 4.0.1 version)
+# Use a base image with Java 21 (running on Linux Ubuntu)
 FROM eclipse-temurin:21-jdk-jammy
 
-# 2. Install C++ (g++) and Python3 compilers
+# 🟢 INSTALL COMPILERS (C++ and Python)
+# This is the missing step!
 RUN apt-get update && apt-get install -y \
     g++ \
     python3 \
     && rm -rf /var/lib/apt/lists/*
 
-# 3. Setup the App
+# Set working directory
 WORKDIR /app
+
+# Copy project files
 COPY . .
 
-# 4. CRITICAL FIX: Make the build script executable
-RUN chmod +x mvnw
-
-# 5. Build the App (Skip tests to avoid crashes)
+# Build the application
+# (using -DskipTests to make it faster)
 RUN ./mvnw clean package -DskipTests
 
-# 6. Run the App
+# Run the application
 ENTRYPOINT ["java", "-jar", "target/api-0.0.1-SNAPSHOT.jar"]
