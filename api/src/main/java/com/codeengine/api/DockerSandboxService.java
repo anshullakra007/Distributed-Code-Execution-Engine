@@ -9,84 +9,94 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class DockerSandboxService {
 
-    // 🟢 Updated to accept Language and Input directly
     public String executeCode(String language, String code, String input) {
+        String imageName;
+        String fileName;
+        String runCommand;
+
+        // 1. Determine Docker Image & Command based on Language
+        switch (language) {
+            case "cpp":
+                imageName = "gcc:latest";
+                fileName = "Solution.cpp";
+                // Compile + Run pipeline
+                runCommand = "g++ -o solution Solution.cpp && ./solution";
+                break;
+            case "java":
+                imageName = "openjdk:latest";
+                fileName = "Main.java";
+                runCommand = "javac Main.java && java Main";
+                break;
+            case "python":
+                imageName = "python:3.10-slim";
+                fileName = "script.py";
+                runCommand = "python3 script.py";
+                break;
+            default:
+                return "Error: Unsupported language";
+        }
+
         try {
-            // 1. Create a temporary file for the code
-            Path codeFile = Files.createTempFile("code", getExtension(language));
-            Files.writeString(codeFile, code);
+            // 2. Create a temporary folder for this submission on the HOST
+            Path tempDir = Files.createTempDirectory("code-engine-");
+            File sourceFile = new File(tempDir.toFile(), fileName);
+            File inputFile = new File(tempDir.toFile(), "input.txt");
 
-            ProcessBuilder pb;
-            
-            // 2. Choose the right compiler based on language
-            // (We are running these DIRECTLY on the server, not in Docker)
-            if (language.equals("cpp")) {
-                Path exeFile = Files.createTempFile("app", ".out");
-                // Compile: g++ code.cpp -o app.out
-                Process compile = new ProcessBuilder("g++", codeFile.toString(), "-o", exeFile.toString()).start();
-                compile.waitFor();
-                if (compile.exitValue() != 0) return "Compilation Error:\n" + readStream(compile.getErrorStream());
-                
-                // Run: ./app.out
-                pb = new ProcessBuilder(exeFile.toString());
-            } else if (language.equals("python")) {
-                // Run: python3 code.py
-                pb = new ProcessBuilder("python3", codeFile.toString());
-            } else if (language.equals("java")) {
-                // Rename file to Main.java (Required for Java)
-                Path javaFile = codeFile.resolveSibling("Main.java");
-                Files.move(codeFile, javaFile);
-                
-                // Compile: javac Main.java
-                Process compile = new ProcessBuilder("javac", javaFile.toString()).start();
-                compile.waitFor();
-                if (compile.exitValue() != 0) return "Compilation Error:\n" + readStream(compile.getErrorStream());
-
-                // Run: java -cp . Main
-                pb = new ProcessBuilder("java", "-cp", javaFile.getParent().toString(), "Main");
-            } else {
-                return "Error: Language not supported";
+            // 3. Write User Code & Input to files
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(sourceFile))) {
+                writer.write(code);
+            }
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(inputFile))) {
+                writer.write(input == null ? "" : input);
             }
 
-            // 3. Start the process
-            pb.redirectErrorStream(true);
+            // 4. Build Docker Command
+            // We mount the temp folder into the container at /app
+            ProcessBuilder pb = new ProcessBuilder(
+                    "docker", "run",
+                    "--rm",                        // Delete container after run
+                    "--memory=512m",               // Limit RAM (Important for Free Tier)
+                    "--cpus=0.5",                  // Limit CPU
+                    "-v", tempDir.toAbsolutePath() + ":/app",
+                    "-w", "/app",                  // Working directory
+                    imageName,
+                    "sh", "-c", runCommand + " < input.txt" // Inject input via file redirection
+            );
+
+            pb.redirectErrorStream(true); // Merge Error and Output streams
+
+            long startTime = System.currentTimeMillis();
             Process process = pb.start();
 
-            // 4. Pass Input (if provided)
-            if (input != null && !input.isEmpty()) {
-                try (OutputStream os = process.getOutputStream()) {
-                    os.write(input.getBytes());
-                    os.flush();
-                }
+            // 🔴 CRITICAL FIX FOR RENDER FREE TIER 🔴
+            // Increase timeout from 2s -> 15s because Docker takes time to start on shared CPUs.
+            // Real execution time is calculated separately below.
+            boolean finished = process.waitFor(15, TimeUnit.SECONDS);
+
+            if (!finished) {
+                process.destroyForcibly();
+                return "Error: Time Limit Exceeded (Container startup took too long)";
             }
 
-            // 5. Wait for output (5 second timeout)
-            if (!process.waitFor(5, TimeUnit.SECONDS)) {
-                process.destroy();
-                return "Error: Time Limit Exceeded";
+            // 5. Read Output
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            StringBuilder output = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
             }
 
-            return readStream(process.getInputStream());
+            // 6. Cleanup
+            Files.walk(tempDir)
+                .map(Path::toFile)
+                .sorted((o1, o2) -> -o1.compareTo(o2))
+                .forEach(File::delete);
+
+            return output.toString().trim();
 
         } catch (Exception e) {
+            e.printStackTrace();
             return "Server Error: " + e.getMessage();
         }
-    }
-
-    private String getExtension(String lang) {
-        if (lang.equals("cpp")) return ".cpp";
-        if (lang.equals("python")) return ".py";
-        if (lang.equals("java")) return ".java";
-        return ".txt";
-    }
-
-    private String readStream(InputStream stream) throws IOException {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-        StringBuilder output = new StringBuilder();
-        String line;
-        while ((line = reader.readLine()) != null) {
-            output.append(line).append("\n");
-        }
-        return output.toString().trim();
     }
 }
