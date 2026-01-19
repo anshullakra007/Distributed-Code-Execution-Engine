@@ -6,7 +6,7 @@ function App() {
   // --- STATE ---
   const [language, setLanguage] = useState(localStorage.getItem('language') || 'cpp');
   const [code, setCode] = useState(localStorage.getItem('savedCode') || '');
-  const [theme, setTheme] = useState('vs-dark'); // 'vs-dark' or 'light'
+  const [theme, setTheme] = useState('vs-dark');
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [stats, setStats] = useState({ time: null, memory: null, status: null });
@@ -15,29 +15,30 @@ function App() {
   
   const editorRef = useRef(null);
 
-  // --- BOILERPLATES ---
+  // --- CONFIGURATION ---
+  // ⚠️ IMPORTANT: On Vercel, this must be a https:// link to a deployed backend.
+  // For local development, http://localhost:8080 works fine.
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/execute";
+
   const BOILERPLATES = {
     cpp: `#include <iostream>\nusing namespace std;\n\nint main() {\n    int a, b;\n    if (cin >> a >> b) {\n        cout << "Sum: " << (a + b) << endl;\n    } else {\n        cout << "Hello Distributed World!" << endl;\n    }\n    return 0;\n}`,
     java: `import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (scanner.hasNextInt()) {\n            int a = scanner.nextInt();\n            int b = scanner.nextInt();\n            System.out.println("Sum: " + (a + b));\n        } else {\n            System.out.println("Hello Distributed World!");\n        }\n    }\n}`,
     python: `import sys\n\ntry:\n    lines = sys.stdin.read().split()\n    if len(lines) >= 2:\n        a = int(lines[0])\n        b = int(lines[1])\n        print(f"Sum: {a + b}")\n    else:\n        print("Hello Distributed World!")\nexcept Exception:\n    print("Hello Distributed World!")`
   };
 
-  // --- INITIAL LOAD ---
+  // --- EFFECTS ---
   useEffect(() => {
-    // If no saved code, load boilerplate
     if (!localStorage.getItem('savedCode')) {
       setCode(BOILERPLATES[language]);
     }
   }, []);
 
-  // --- AUTO-SAVE ---
   useEffect(() => {
     localStorage.setItem('savedCode', code);
     localStorage.setItem('language', language);
     localStorage.setItem('fontSize', fontSize);
   }, [code, language, fontSize]);
 
-  // --- SHORTCUTS ---
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') handleRun();
@@ -74,14 +75,12 @@ function App() {
     setTheme(prev => prev === 'vs-dark' ? 'light' : 'vs-dark');
   };
 
+  // --- REAL BACKEND EXECUTION ---
   const handleRun = async () => {
     if (isLoading) return;
     setIsLoading(true);
     setOutput("Compiling and Executing...");
     setStats({ time: null, memory: null, status: null });
-
-    // ⚠️ REAL BACKEND URL
-    const API_URL = "http://localhost:8080/execute"; 
 
     try {
       const response = await fetch(API_URL, {
@@ -90,32 +89,28 @@ function App() {
         body: JSON.stringify({ language, code, input })
       });
 
-      /* ⬇️ MOCK DATA (DELETE THIS BLOCK WHEN BACKEND CONNECTED) ⬇️ */
-      await new Promise(r => setTimeout(r, 600)); 
-      const mockData = {
-        output: "Hello Distributed World!\nProcess finished.",
-        executionTime: "0.04s",
-        memoryUsed: "4.2 MB",
-        status: "Accepted"
-      };
-      /* ⬆️ MOCK DATA (DELETE THIS BLOCK WHEN BACKEND CONNECTED) ⬆️ */
+      if (!response.ok) {
+        throw new Error(`Server Error: ${response.status} (Is Docker running?)`);
+      }
 
-      const data = mockData; // Replace with: await response.json();
+      const data = await response.json();
       
+      // Handle explicit errors from backend
       if (data.error) {
         setOutput(data.error);
         setStats({ status: "Error", time: "0.00s", memory: "0 KB" });
       } else {
         setOutput(data.output);
         setStats({ 
-          time: data.executionTime, 
-          memory: data.memoryUsed, 
+          time: data.executionTime || "0.00s", 
+          memory: data.memoryUsed || "0 KB", 
           status: "Accepted" 
         });
       }
     
     } catch (error) {
-      setOutput(`Error: ${error.message}\n\nIs the backend running?`);
+      console.error(error);
+      setOutput(`Error: ${error.message}\n\nTroubleshooting:\n1. Is the Spring Boot backend running on Port 8080?\n2. If on Vercel, you cannot connect to localhost (Mixed Content).`);
       setStats({ status: "Connection Error", time: "-", memory: "-" });
     } finally {
       setIsLoading(false);
