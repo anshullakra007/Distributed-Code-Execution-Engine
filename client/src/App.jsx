@@ -1,16 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import './App.css';
 
 function App() {
   // --- STATE ---
-  const [language, setLanguage] = useState('cpp');
-  const [code, setCode] = useState('');
+  const [language, setLanguage] = useState(localStorage.getItem('language') || 'cpp');
+  const [code, setCode] = useState(localStorage.getItem('savedCode') || '');
+  const [theme, setTheme] = useState('vs-dark'); // 'vs-dark' or 'light'
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [stats, setStats] = useState({ time: null, memory: null, status: null });
   const [isLoading, setIsLoading] = useState(false);
-  const [fontSize, setFontSize] = useState(14);
+  const [fontSize, setFontSize] = useState(parseInt(localStorage.getItem('fontSize')) || 14);
+  
+  const editorRef = useRef(null);
 
   // --- BOILERPLATES ---
   const BOILERPLATES = {
@@ -19,72 +22,85 @@ function App() {
     python: `import sys\n\ntry:\n    lines = sys.stdin.read().split()\n    if len(lines) >= 2:\n        a = int(lines[0])\n        b = int(lines[1])\n        print(f"Sum: {a + b}")\n    else:\n        print("Hello Distributed World!")\nexcept Exception:\n    print("Hello Distributed World!")`
   };
 
-  // --- INITIALIZATION ---
+  // --- INITIAL LOAD ---
   useEffect(() => {
-    setCode(BOILERPLATES[language]);
+    // If no saved code, load boilerplate
+    if (!localStorage.getItem('savedCode')) {
+      setCode(BOILERPLATES[language]);
+    }
   }, []);
 
-  // --- SHORTCUT LISTENER (Ctrl + Enter) ---
+  // --- AUTO-SAVE ---
+  useEffect(() => {
+    localStorage.setItem('savedCode', code);
+    localStorage.setItem('language', language);
+    localStorage.setItem('fontSize', fontSize);
+  }, [code, language, fontSize]);
+
+  // --- SHORTCUTS ---
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        handleRun();
-      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') handleRun();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [code, input, language]); // Dependencies crucial for latest state
+  }, [code, input, language]);
 
   // --- HANDLERS ---
+  const handleEditorDidMount = (editor, monaco) => {
+    editorRef.current = editor;
+  };
+
   const handleLanguageChange = (e) => {
     const newLang = e.target.value;
     setLanguage(newLang);
     setCode(BOILERPLATES[newLang]);
-    setStats({ time: null, memory: null, status: null }); // Reset stats
+    setStats({ time: null, memory: null, status: null });
     setOutput('');
   };
 
-  const handleReset = () => {
-    if (window.confirm("Reset code to default boilerplate?")) {
-      setCode(BOILERPLATES[language]);
-    }
+  const handleDownload = () => {
+    const element = document.createElement("a");
+    const file = new Blob([code], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    const ext = language === 'cpp' ? 'cpp' : language === 'java' ? 'java' : 'py';
+    element.download = `Solution.${ext}`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
   };
 
-  // --- RUN LOGIC ---
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'vs-dark' ? 'light' : 'vs-dark');
+  };
+
   const handleRun = async () => {
     if (isLoading) return;
     setIsLoading(true);
     setOutput("Compiling and Executing...");
     setStats({ time: null, memory: null, status: null });
 
-    // ⚠️ REAL BACKEND URL (Use localhost:8080 if running locally)
+    // ⚠️ REAL BACKEND URL
     const API_URL = "http://localhost:8080/execute"; 
 
     try {
-      // 1. Send Request
       const response = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ language, code, input })
       });
 
-      // 2. Parse Response
-      // Expected JSON format from backend:
-      // { "output": "Sum: 30", "executionTime": "0.04s", "memoryUsed": "12MB" }
-      
-      /* MOCKING RESPONSE FOR DEMO PURPOSES (Delete this block when backend is ready) */
-      /* -------------------------------------------------------------------------- */
-      await new Promise(r => setTimeout(r, 800)); // Fake delay
+      /* ⬇️ MOCK DATA (DELETE THIS BLOCK WHEN BACKEND CONNECTED) ⬇️ */
+      await new Promise(r => setTimeout(r, 600)); 
       const mockData = {
         output: "Hello Distributed World!\nProcess finished.",
-        executionTime: (Math.random() * 0.1).toFixed(3) + "s",
-        memoryUsed: Math.floor(Math.random() * 5000) + " KB",
+        executionTime: "0.04s",
+        memoryUsed: "4.2 MB",
         status: "Accepted"
       };
-      /* -------------------------------------------------------------------------- */
+      /* ⬆️ MOCK DATA (DELETE THIS BLOCK WHEN BACKEND CONNECTED) ⬆️ */
 
-      // 3. Update UI (Replace 'mockData' with 'await response.json()' later)
-      const data = mockData; 
+      const data = mockData; // Replace with: await response.json();
       
       if (data.error) {
         setOutput(data.error);
@@ -107,21 +123,27 @@ function App() {
   };
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${theme}`}>
       <header className="header">
         <div className="logo">
-          <span style={{color: '#22c55e'}}>⚡</span> DISTRIBUTED ENGINE
+          <span className="logo-icon">⚡</span> DISTRIBUTED ENGINE
         </div>
         <div className="controls">
+          <button className="icon-btn theme-btn" onClick={toggleTheme} title="Toggle Theme">
+            {theme === 'vs-dark' ? '☀️' : '🌙'}
+          </button>
+          
           <div className="zoom-controls">
             <button onClick={() => setFontSize(s => Math.max(10, s - 1))} title="Decrease Font">A-</button>
             <button onClick={() => setFontSize(s => Math.min(24, s + 1))} title="Increase Font">A+</button>
           </div>
+          
           <select value={language} onChange={handleLanguageChange} className="lang-select">
             <option value="cpp">C++ (GCC 9.2)</option>
             <option value="java">Java (JDK 21)</option>
             <option value="python">Python 3.10</option>
           </select>
+          
           <button className="run-btn" onClick={handleRun} disabled={isLoading} title="Ctrl+Enter to Run">
             {isLoading ? "Running..." : "▶ RUN"}
           </button>
@@ -129,20 +151,21 @@ function App() {
       </header>
 
       <div className="workspace">
-        {/* EDITOR PANEL */}
         <div className="editor-panel">
           <div className="panel-header-row">
             <span>SOURCE CODE</span>
             <div className="editor-actions">
-              <button className="icon-btn" onClick={handleReset}>↺ Reset</button>
+              <button className="icon-btn" onClick={() => setCode(BOILERPLATES[language])}>↺ Reset</button>
+              <button className="icon-btn" onClick={handleDownload}>⬇️ Save</button>
               <button className="icon-btn" onClick={() => navigator.clipboard.writeText(code)}>📋 Copy</button>
             </div>
           </div>
           <Editor
             height="100%"
             language={language === 'cpp' ? 'cpp' : language}
-            theme="vs-dark"
+            theme={theme}
             value={code}
+            onMount={handleEditorDidMount}
             onChange={(value) => setCode(value)}
             options={{
               fontSize: fontSize,
@@ -155,9 +178,7 @@ function App() {
           />
         </div>
 
-        {/* I/O PANEL */}
         <div className="io-panel">
-          {/* Input */}
           <div className="io-section input-section">
             <div className="panel-header">STDIN (Input)</div>
             <textarea 
@@ -168,11 +189,9 @@ function App() {
             />
           </div>
 
-          {/* Output */}
           <div className="io-section output-section">
             <div className="panel-header">
               STDOUT (Output)
-              {/* METRICS DISPLAY (Only shows after run) */}
               {stats.time && (
                 <div className="metrics">
                   <span className={stats.status === "Error" ? "metric-error" : "metric-success"}>
