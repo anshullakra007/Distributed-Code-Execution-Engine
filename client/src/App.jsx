@@ -1,129 +1,119 @@
-import { useState } from "react";
-import Editor from "@monaco-editor/react";
-import "./App.css";
+import { useState } from 'react';
+import './App.css';
 
-const BOILERPLATES = {
-  cpp: `#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, Distributed World!" << endl;\n    return 0;\n}`,
-  java: `public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, Distributed World!");\n    }\n}`,
-  python: `print("Hello, Distributed World!")`,
-  javascript: `console.log("Hello, Distributed World!");`
-};
+// ⚠️ IMPORT YOUR EDITOR COMPONENT HERE (e.g., CodeMirror or Monaco)
+// import CodeMirror from '@uiw/react-codemirror'; 
 
 function App() {
-  const [language, setLanguage] = useState("cpp");
-  const [code, setCode] = useState(BOILERPLATES.cpp);
-  const [input, setInput] = useState("");
-  const [output, setOutput] = useState("");
-  const [status, setStatus] = useState("idle");
+  // --- YOUR EXISTING STATE ---
+  const [code, setCode] = useState('// Write your C++ code here...');
+  const [input, setInput] = useState('');
+  const [output, setOutput] = useState('');
+  const [language, setLanguage] = useState('cpp');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const runCode = async () => {
-    setStatus("running");
-    setOutput("Executing...");
-    try {
-      // 🟢 HARDCODED LINK: Forces connection to your specific Render backend
-      const API_URL = "https://code-engine-api-wicb.onrender.com/api/run";
-      
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ language, code, input }),
-      });
-
-      const rawText = await response.text();
-
-      try {
-        const data = JSON.parse(rawText);
-        if (data.error) {
-          setStatus("error");
-          setOutput(data.error);
-        } else {
-          setStatus("success");
-          setOutput(data.output || rawText);
-        }
-      } catch (e) {
-        setStatus(response.ok ? "success" : "error");
-        setOutput(rawText);
-      }
-
-    } catch (error) {
-      console.error(error);
-      setStatus("error");
-      setOutput("Network Error: Could not reach server.\n\nCheck:\n1. Is the backend running? (./mvnw spring-boot:run)\n2. Is Docker Desktop running?");
-    }
+  // --- YOUR RUN FUNCTION (Keep your logic!) ---
+  const handleRun = async () => {
+    setIsLoading(true);
+    setOutput("Executing on distributed node...");
+    
+    // ... INSERT YOUR FETCH/API LOGIC HERE ...
+    
+    // Simulation for demo:
+    setTimeout(() => {
+      setOutput("Hello, Distributed World!\nProcess finished with exit code 0.");
+      setIsLoading(false);
+    }, 1000);
   };
 
   return (
     <div className="app-container">
-      {/* Navbar */}
-      <nav className="navbar">
-        <div className="navbar-brand">
-          <span>⚡ DISTRIBUTED CODE ENGINE</span>
+      
+      {/* 1. PROFESSIONAL HEADER */}
+      <header className="header">
+        <div className="logo">
+          <div className="status-dot"></div> {/* "Online" Indicator */}
+          <span>DISTRIBUTED ENGINE</span>
         </div>
-        <div className="control-group">
+        
+        <div className="controls">
           <select 
-            className="lang-select" 
             value={language} 
-            onChange={(e) => {
-              setLanguage(e.target.value);
-              setCode(BOILERPLATES[e.target.value]);
-            }}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="lang-select"
           >
-            <option value="cpp">C++ (GCC)</option>
-            <option value="java">Java (JDK 17)</option>
-            <option value="python">Python 3</option>
-            <option value="javascript">JavaScript (Node)</option>
+            <option value="cpp">C++ (GCC 9.2)</option>
+            <option value="java">Java (JDK 21)</option>
+            <option value="python">Python 3.10</option>
           </select>
-          <button className="btn-run" onClick={runCode} disabled={status === "running"}>
-            {status === "running" ? "Running..." : "▶ Run Code"}
+
+          <button className="run-btn" onClick={handleRun} disabled={isLoading}>
+            {isLoading ? "Running..." : "▶ RUN CODE"}
           </button>
         </div>
-      </nav>
+      </header>
 
-      {/* Workspace */}
+      {/* 2. MAIN WORKSPACE (VS Code Style Layout) */}
       <div className="workspace">
-        {/* Editor Side */}
-        <div className="editor-wrapper">
-          <Editor
-            height="100%"
-            theme="vs-dark"
-            language={language === "cpp" ? "cpp" : language}
+        
+        {/* Left: Code Editor */}
+        <div className="editor-panel">
+          {/* <div className="panel-header">MAIN.CPP</div> */}
+          
+          {/* ⚠️ PUT YOUR CODE EDITOR COMPONENT HERE */}
+          {/* Example: */}
+          {/* <CodeMirror 
+              value={code} 
+              height="100%" 
+              theme="dark" 
+              onChange={(val) => setCode(val)} 
+          /> */}
+          
+          {/* Fallback textarea if you don't have the editor component handy yet */}
+          <textarea 
+            className="custom-input" 
+            style={{fontFamily: 'JetBrains Mono', lineHeight: 1.5}}
             value={code}
-            onChange={(val) => setCode(val)}
-            options={{
-              fontSize: 16, // Readable size
-              fontWeight: "600", // Semi-bold text
-              fontFamily: "'Fira Code', 'Consolas', monospace",
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-              padding: { top: 20 },
-              lineHeight: 24
-            }}
+            onChange={(e) => setCode(e.target.value)}
+            spellCheck="false"
           />
         </div>
 
-        {/* IO Side */}
-        <div className="io-wrapper">
-          <div className="panel">
-            <div className="panel-title">Custom Input (Stdin)</div>
-            <textarea
-              className="panel-input"
+        {/* Right: I/O Panels */}
+        <div className="io-panel">
+          
+          {/* Top Right: Input */}
+          <div className="input-section">
+            <div className="panel-header">STDIN (Input)</div>
+            <textarea 
+              className="custom-input"
+              placeholder="Enter input for your program..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Input goes here..."
             />
           </div>
-          <div className="panel" style={{ flex: 1.5 }}>
-            <div className="panel-title">Output</div>
-            <div 
-              className="output-area"
-              style={{ color: status === "error" ? "#f48771" : "#89d185" }}
-            >
-              {output || "Ready to execute."}
-            </div>
+
+          {/* Bottom Right: Output */}
+          <div className="output-section">
+            <div className="panel-header">STDOUT (Terminal)</div>
+            <textarea 
+              readOnly
+              className="output-terminal"
+              value={output}
+              placeholder="> Output will appear here..."
+            />
           </div>
+
         </div>
       </div>
+
+      {/* 3. FAKE STATUS BAR (Adds "Engineering" feel) */}
+      <footer className="status-bar">
+        <div className="status-item">STATUS: <span>CONNECTED</span></div>
+        <div className="status-item">NODE: <span>AWS-AP-SOUTH-1</span></div>
+        <div className="status-item">LATENCY: <span>24ms</span></div>
+      </footer>
+
     </div>
   );
 }

@@ -1,182 +1,193 @@
-/* 🟢 PROFESSIONAL VS CODE THEME & LAYOUT */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+
 :root {
-  --bg-main: #1e1e1e;       /* Editor Main Background */
-  --bg-panel: #252526;      /* Side Panel / Navbar */
-  --border: #333333;        /* Subtle Border */
-  --accent: #007acc;        /* VS Code Blue */
-  --text-main: #e0e0e0;     /* High Contrast Text */
-  --text-dim: #858585;      /* Comments/Secondary */
-  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-code: 'Fira Code', 'Consolas', monospace;
+  --bg-main: #000000;      /* Deepest Black */
+  --bg-panel: #09090b;     /* Slightly lighter for panels */
+  --border: #27272a;       /* Subtle dark border */
+  --text-main: #ffffff;
+  --text-muted: #a1a1aa;
+  --accent: #ffffff;       /* Monochrome Accent */
+  --terminal-green: #22c55e; /* Matrix green for success */
+  --terminal-red: #ef4444;   /* Error red */
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-body, html, #root {
+body {
   margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
   background-color: var(--bg-main);
   color: var(--text-main);
-  font-family: var(--font-ui);
-  overflow: hidden; /* Prevent scrolling the whole page */
+  font-family: 'Inter', sans-serif;
+  height: 100vh;
+  overflow: hidden; /* App-like feel, no window scroll */
 }
 
-/* 🟢 LAYOUT CONTAINER */
+/* --- MAIN LAYOUT --- */
 .app-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  width: 100vw;
 }
 
-/* 🟢 NAVBAR */
-.navbar {
+/* --- HEADER --- */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
   height: 60px;
-  background-color: var(--bg-panel);
   border-bottom: 1px solid var(--border);
+  background: var(--bg-main);
+}
+
+.logo {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  font-size: 1.2rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  flex-shrink: 0; /* Prevent navbar from shrinking */
+  gap: 10px;
 }
 
-.navbar-brand span {
-  font-weight: 700; /* Bold Title */
-  font-size: 18px;
-  color: #fff;
-  letter-spacing: 1px;
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--terminal-green);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--terminal-green);
 }
 
-.control-group {
+.controls {
   display: flex;
   gap: 15px;
+  align-items: center;
 }
 
+/* --- SELECT DROPDOWN --- */
 .lang-select {
-  background: var(--bg-main);
-  color: #fff;
+  background: var(--bg-panel);
+  color: var(--text-main);
   border: 1px solid var(--border);
   padding: 8px 12px;
   border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
   outline: none;
-}
-
-.btn-run {
-  background-color: var(--accent);
-  color: white;
-  border: none;
-  padding: 8px 24px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 14px;
   cursor: pointer;
-  letter-spacing: 0.5px;
-  transition: all 0.2s;
+  transition: border-color 0.2s;
 }
 
-.btn-run:hover {
-  background-color: #0062a3;
-  transform: translateY(-1px);
+.lang-select:hover { border-color: var(--text-muted); }
+
+/* --- RUN BUTTON (The Star) --- */
+.run-btn {
+  background: var(--accent);
+  color: #000; /* Inverted high contrast */
+  border: none;
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.1s, opacity 0.2s;
 }
 
-/* 🟢 MAIN WORKSPACE (Desktop Default) */
+.run-btn:hover { opacity: 0.9; }
+.run-btn:active { transform: scale(0.98); }
+
+/* --- WORKSPACE GRID --- */
 .workspace {
   display: flex;
-  flex: 1; /* Takes all remaining height */
+  flex: 1; /* Fills remaining height */
   overflow: hidden;
 }
 
-/* Editor takes 65% width */
-.editor-wrapper {
-  flex: 65; 
+/* Left Side: Code Editor */
+.editor-panel {
+  flex: 2; /* Takes 66% width */
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
 }
 
-/* IO Panel takes 35% width */
-.io-wrapper {
-  flex: 35;
+/* Right Side: I/O */
+.io-panel {
+  flex: 1; /* Takes 33% width */
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-panel);
-  border-left: 1px solid #000;
+  background: var(--bg-panel);
 }
 
-/* 🟢 PANELS */
-.panel {
-  display: flex;
-  flex-direction: column;
-  flex: 1; /* Split IO panel 50/50 vertically */
-  overflow: hidden;
-  border-bottom: 1px solid var(--border);
-}
-
-.panel-title {
+/* Panel Headers (Input / Output labels) */
+.panel-header {
   padding: 10px 15px;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
-  color: var(--text-dim);
   text-transform: uppercase;
-  letter-spacing: 1px;
-  background-color: #2d2d2d;
+  color: var(--text-muted);
   border-bottom: 1px solid var(--border);
+  background: var(--bg-main);
+  letter-spacing: 0.1em;
 }
 
-.panel-input {
+/* Text Areas */
+.custom-input, .output-terminal {
   flex: 1;
-  background-color: var(--bg-main);
+  width: 100%;
+  background: transparent;
   border: none;
-  color: #fff;
+  color: var(--text-main);
   padding: 15px;
-  font-family: var(--font-code);
-  font-size: 14px;
-  font-weight: 500; /* Thicker text */
-  resize: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  resize: none; /* Disable drag resize */
   outline: none;
-  line-height: 1.5;
 }
 
-.output-area {
+/* Input Section */
+.input-section {
   flex: 1;
-  padding: 15px;
-  font-family: var(--font-code);
-  font-size: 14px;
-  font-weight: 500; /* Thicker text */
-  white-space: pre-wrap;
-  overflow-y: auto;
-  line-height: 1.6;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
 }
 
-/* 🟢 RESPONSIVE: MOBILE & TABLET (< 900px) */
-@media (max-width: 900px) {
-  .workspace {
-    flex-direction: column; /* Stack vertically */
-  }
+/* Output Section */
+.output-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #000; /* Darker for terminal feel */
+}
 
-  .editor-wrapper {
-    flex: 2; /* Editor gets 2/3 height */
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
+.output-terminal {
+  color: var(--text-muted);
+}
+.output-terminal.success { color: var(--text-main); }
+.output-terminal.error { color: var(--terminal-red); }
 
-  .io-wrapper {
-    flex: 1; /* IO gets 1/3 height */
-  }
-  
-  .navbar-brand span {
-    font-size: 14px; /* Smaller title on phone */
-  }
-  
-  .btn-run {
-    padding: 8px 12px;
-  }
+/* --- STATUS BAR (The "Pro" Touch) --- */
+.status-bar {
+  height: 30px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-main);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 15px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
