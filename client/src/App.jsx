@@ -14,8 +14,8 @@ function App() {
   
   const editorRef = useRef(null);
 
-  // ✅ YOUR REAL BACKEND URL
-  const API_URL = "https://code-engine-api-wicb.onrender.com/execute";
+  // ✅ USE THE VERCEL PROXY (Bypasses CORS errors)
+  const API_URL = "/api/execute";
 
   const BOILERPLATES = {
     cpp: `#include <iostream>\nusing namespace std;\n\nint main() {\n    int a, b;\n    if (cin >> a >> b) {\n        cout << "Sum: " << (a + b) << endl;\n    } else {\n        cout << "Hello Distributed World!" << endl;\n    }\n    return 0;\n}`,
@@ -67,7 +67,7 @@ function App() {
   const handleRun = async () => {
     if (isLoading) return;
     setIsLoading(true);
-    setOutput("Compiling and Executing...\n(If this takes >50s, the server is waking up from sleep mode)");
+    setOutput("Compiling and Executing...");
     setStats({ time: null, memory: null, status: null });
 
     try {
@@ -95,7 +95,7 @@ function App() {
         });
       }
     } catch (error) {
-      setOutput(`CONNECTION FAILED.\n\nTarget: ${API_URL}\n\nError: ${error.message}\n\nTroubleshooting:\n1. Render Free Tier spins down after 15 mins. Wait 1 min and try again.\n2. Check browser console for CORS errors.`);
+      setOutput(`CONNECTION FAILED.\n\nError: ${error.message}\n\nTroubleshooting:\n1. Is the Backend on Render awake? (Wait 60s)\n2. Is the vercel.json file in the correct folder?`);
       setStats({ status: "Net Error", time: "-", memory: "-" });
     } finally {
       setIsLoading(false);

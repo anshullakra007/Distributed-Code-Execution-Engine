@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/execute",
+      "destination": "https://code-engine-api-wicb.onrender.com/execute"
+    }
+  ]
+}
