@@ -3,7 +3,6 @@ import Editor from '@monaco-editor/react';
 import './App.css';
 
 function App() {
-  // --- STATE ---
   const [language, setLanguage] = useState(localStorage.getItem('language') || 'cpp');
   const [code, setCode] = useState(localStorage.getItem('savedCode') || '');
   const [theme, setTheme] = useState('vs-dark');
@@ -15,10 +14,8 @@ function App() {
   
   const editorRef = useRef(null);
 
-  // --- CONFIGURATION ---
-  // ⚠️ IMPORTANT: On Vercel, this must be a https:// link to a deployed backend.
-  // For local development, http://localhost:8080 works fine.
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/execute";
+  // ✅ CORRECT RENDER URL FROM YOUR SCREENSHOT
+  const API_URL = "https://code-engine-api-wicb.onrender.com/execute";
 
   const BOILERPLATES = {
     cpp: `#include <iostream>\nusing namespace std;\n\nint main() {\n    int a, b;\n    if (cin >> a >> b) {\n        cout << "Sum: " << (a + b) << endl;\n    } else {\n        cout << "Hello Distributed World!" << endl;\n    }\n    return 0;\n}`,
@@ -26,11 +23,8 @@ function App() {
     python: `import sys\n\ntry:\n    lines = sys.stdin.read().split()\n    if len(lines) >= 2:\n        a = int(lines[0])\n        b = int(lines[1])\n        print(f"Sum: {a + b}")\n    else:\n        print("Hello Distributed World!")\nexcept Exception:\n    print("Hello Distributed World!")`
   };
 
-  // --- EFFECTS ---
   useEffect(() => {
-    if (!localStorage.getItem('savedCode')) {
-      setCode(BOILERPLATES[language]);
-    }
+    if (!localStorage.getItem('savedCode')) setCode(BOILERPLATES[language]);
   }, []);
 
   useEffect(() => {
@@ -46,11 +40,6 @@ function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [code, input, language]);
-
-  // --- HANDLERS ---
-  const handleEditorDidMount = (editor, monaco) => {
-    editorRef.current = editor;
-  };
 
   const handleLanguageChange = (e) => {
     const newLang = e.target.value;
@@ -75,7 +64,6 @@ function App() {
     setTheme(prev => prev === 'vs-dark' ? 'light' : 'vs-dark');
   };
 
-  // --- REAL BACKEND EXECUTION ---
   const handleRun = async () => {
     if (isLoading) return;
     setIsLoading(true);
@@ -90,12 +78,11 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error(`Server Error: ${response.status} (Is Docker running?)`);
+        throw new Error(`Server Error: ${response.status}`);
       }
 
       const data = await response.json();
       
-      // Handle explicit errors from backend
       if (data.error) {
         setOutput(data.error);
         setStats({ status: "Error", time: "0.00s", memory: "0 KB" });
@@ -107,11 +94,9 @@ function App() {
           status: "Accepted" 
         });
       }
-    
     } catch (error) {
-      console.error(error);
-      setOutput(`Error: ${error.message}\n\nTroubleshooting:\n1. Is the Spring Boot backend running on Port 8080?\n2. If on Vercel, you cannot connect to localhost (Mixed Content).`);
-      setStats({ status: "Connection Error", time: "-", memory: "-" });
+      setOutput(`CONNECTION FAILED.\n\nTarget: ${API_URL}\n\nError: ${error.message}\n\nNote: If you just deployed to Render, it might take 1-2 minutes to wake up.`);
+      setStats({ status: "Net Error", time: "-", memory: "-" });
     } finally {
       setIsLoading(false);
     }
@@ -127,18 +112,15 @@ function App() {
           <button className="icon-btn theme-btn" onClick={toggleTheme} title="Toggle Theme">
             {theme === 'vs-dark' ? '☀️' : '🌙'}
           </button>
-          
           <div className="zoom-controls">
             <button onClick={() => setFontSize(s => Math.max(10, s - 1))} title="Decrease Font">A-</button>
             <button onClick={() => setFontSize(s => Math.min(24, s + 1))} title="Increase Font">A+</button>
           </div>
-          
           <select value={language} onChange={handleLanguageChange} className="lang-select">
             <option value="cpp">C++ (GCC 9.2)</option>
             <option value="java">Java (JDK 21)</option>
             <option value="python">Python 3.10</option>
           </select>
-          
           <button className="run-btn" onClick={handleRun} disabled={isLoading} title="Ctrl+Enter to Run">
             {isLoading ? "Running..." : "▶ RUN"}
           </button>
@@ -160,7 +142,7 @@ function App() {
             language={language === 'cpp' ? 'cpp' : language}
             theme={theme}
             value={code}
-            onMount={handleEditorDidMount}
+            onMount={(editor) => (editorRef.current = editor)}
             onChange={(value) => setCode(value)}
             options={{
               fontSize: fontSize,
@@ -183,7 +165,6 @@ function App() {
               onChange={(e) => setInput(e.target.value)}
             />
           </div>
-
           <div className="io-section output-section">
             <div className="panel-header">
               STDOUT (Output)

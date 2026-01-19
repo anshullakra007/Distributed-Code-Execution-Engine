@@ -23,11 +23,13 @@
   --input-bg: #fafafa;
 }
 
+/* FIX: Global reset to prevent scrollbars */
 body, html {
-  margin: 0; padding: 0; 
+  margin: 0; 
+  padding: 0; 
   height: 100%;
-  width: 100%; /* FIX: Prevents horizontal scroll */
-  overflow: hidden; /* FIX: Stops global scroll */
+  width: 100%; 
+  overflow: hidden; /* CRITICAL: Hides global scrollbar */
   font-family: 'Inter', sans-serif;
   background: var(--bg-main);
 }
@@ -37,7 +39,6 @@ body, html {
   flex-direction: column;
   height: 100vh;
   width: 100%;
-  max-width: 100vw; /* FIX: Hard stop on width */
   background: var(--bg-main);
   color: var(--text);
   transition: background 0.2s, color 0.2s;
@@ -50,7 +51,7 @@ body, html {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 15px; /* Tighter padding */
+  padding: 0 15px; 
   background: var(--bg-darker);
   border-bottom: 1px solid var(--border);
 }
@@ -184,7 +185,6 @@ body, html {
 .metric-success { color: var(--success); font-weight: 700; }
 .metric-error { color: var(--danger); font-weight: 700; }
 
-/* Editor Actions */
 .editor-actions { display: flex; gap: 10px; }
 
 /* Tooltip hints */
