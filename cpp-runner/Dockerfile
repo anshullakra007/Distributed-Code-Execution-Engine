@@ -1,31 +1,31 @@
 # ----------------------------
 # STAGE 1: Build the JAR
 # ----------------------------
-FROM maven:3.8.5-openjdk-17 AS build
+# Use a Maven image that comes with Java 17 pre-installed
+FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
 
-# Copy only the pom.xml first (for faster caching)
+# Copy pom.xml and source code
 COPY pom.xml .
-
-# Copy the source code
 COPY src ./src
 
-# Build the application (Skip tests to speed it up)
+# Build the application
 RUN mvn clean package -DskipTests
 
 # ----------------------------
 # STAGE 2: Run the App
 # ----------------------------
-FROM openjdk:17-jdk-slim
+# Use Eclipse Temurin (The new standard for OpenJDK)
+FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 
-# 🟢 Install C++ and Python (Critical for Native Execution)
+# 🟢 Install C++ (g++) and Python (Critical for Native Execution)
 RUN apt-get update && apt-get install -y \
     g++ \
     python3 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the JAR from the build stage
+# Copy the built JAR from the previous stage
 COPY --from=build /app/target/*.jar app.jar
 
 # Expose port and run
