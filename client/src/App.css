@@ -23,22 +23,25 @@
   --input-bg: #fafafa;
 }
 
-/* FIX: Global reset to prevent scrollbars */
-body, html {
+/* 🔴 GLOBAL RESET - FORCE NO SCROLL */
+* { box-sizing: border-box; }
+
+body, html, #root {
   margin: 0; 
   padding: 0; 
   height: 100%;
   width: 100%; 
-  overflow: hidden; /* CRITICAL: Hides global scrollbar */
+  overflow: hidden; /* ABSOLUTE LOCK */
   font-family: 'Inter', sans-serif;
   background: var(--bg-main);
 }
 
+/* 🔴 MAIN CONTAINER LOCK */
 .app-container {
+  position: fixed; /* Pins to screen edges */
+  top: 0; left: 0; right: 0; bottom: 0;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  width: 100%;
   background: var(--bg-main);
   color: var(--text);
   transition: background 0.2s, color 0.2s;
@@ -47,7 +50,7 @@ body, html {
 /* HEADER */
 .header {
   height: 55px;
-  flex-shrink: 0;
+  flex-shrink: 0; /* Never shrink */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -111,13 +114,19 @@ body, html {
 .run-btn:hover { opacity: 0.9; }
 .run-btn:disabled { background: #777; cursor: wait; }
 
-/* WORKSPACE */
-.workspace { flex: 1; display: flex; overflow: hidden; }
+/* WORKSPACE - FILLS REMAINING SPACE */
+.workspace { 
+  flex: 1; 
+  display: flex; 
+  overflow: hidden; /* No outer scroll */
+  height: 100%; /* Explicit height */
+}
 
 .editor-panel {
   flex: 2;
   border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
+  min-width: 0; /* Prevents flex overflow */
 }
 
 .panel-header-row, .panel-header {
@@ -133,6 +142,7 @@ body, html {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  flex-shrink: 0;
 }
 
 .icon-btn {
@@ -152,9 +162,15 @@ body, html {
   flex: 1;
   display: flex; flex-direction: column;
   background: var(--bg-main);
+  min-width: 0;
 }
 
-.io-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.io-section { 
+  flex: 1; 
+  display: flex; 
+  flex-direction: column; 
+  min-height: 0; /* Critical for scroll inside section */
+}
 .input-section { border-bottom: 1px solid var(--border); }
 
 .custom-input, .output-terminal {
@@ -168,6 +184,7 @@ body, html {
   resize: none;
   outline: none;
   line-height: 1.5;
+  width: 100%;
 }
 
 .output-terminal.error { color: var(--danger); }

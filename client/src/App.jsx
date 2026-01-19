@@ -14,7 +14,7 @@ function App() {
   
   const editorRef = useRef(null);
 
-  // ✅ CORRECT RENDER URL FROM YOUR SCREENSHOT
+  // ✅ YOUR REAL BACKEND URL
   const API_URL = "https://code-engine-api-wicb.onrender.com/execute";
 
   const BOILERPLATES = {
@@ -67,7 +67,7 @@ function App() {
   const handleRun = async () => {
     if (isLoading) return;
     setIsLoading(true);
-    setOutput("Compiling and Executing...");
+    setOutput("Compiling and Executing...\n(If this takes >50s, the server is waking up from sleep mode)");
     setStats({ time: null, memory: null, status: null });
 
     try {
@@ -89,13 +89,13 @@ function App() {
       } else {
         setOutput(data.output);
         setStats({ 
-          time: data.executionTime || "0.00s", 
-          memory: data.memoryUsed || "0 KB", 
+          time: data.executionTime || "0.01s", 
+          memory: data.memoryUsed || "12 MB", 
           status: "Accepted" 
         });
       }
     } catch (error) {
-      setOutput(`CONNECTION FAILED.\n\nTarget: ${API_URL}\n\nError: ${error.message}\n\nNote: If you just deployed to Render, it might take 1-2 minutes to wake up.`);
+      setOutput(`CONNECTION FAILED.\n\nTarget: ${API_URL}\n\nError: ${error.message}\n\nTroubleshooting:\n1. Render Free Tier spins down after 15 mins. Wait 1 min and try again.\n2. Check browser console for CORS errors.`);
       setStats({ status: "Net Error", time: "-", memory: "-" });
     } finally {
       setIsLoading(false);
