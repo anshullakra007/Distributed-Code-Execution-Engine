@@ -1,169 +1,169 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;700&display=swap');
 
 :root {
-  --bg-main: #1e1e1e;      /* VS Code Dark Grey */
-  --bg-panel: #252526;     /* Slightly lighter */
-  --border: #333333;       
-  --text-main: #cccccc;
-  --accent: #0e639c;       /* VS Code Blue */
-  --run-btn-text: #ffffff;
+  --bg-main: #1e1e1e;
+  --bg-darker: #181818;
+  --border: #333;
+  --text: #e0e0e0;
+  --accent: #0078d4;
+  --success: #28a745;
+  --danger: #d73a49;
 }
-
-* { box-sizing: border-box; }
 
 body, html {
   margin: 0;
   padding: 0;
   height: 100%;
-  overflow: hidden; /* 🛑 STOPS WHOLE PAGE SCROLLING */
-  background-color: var(--bg-main);
-  color: var(--text-main);
+  background: var(--bg-main);
+  color: var(--text);
   font-family: 'Inter', sans-serif;
+  overflow: hidden;
 }
 
 .app-container {
   display: flex;
   flex-direction: column;
-  height: 100vh; /* Forces exact screen height */
-  width: 100vw;
+  height: 100vh;
 }
 
-/* --- HEADER --- */
+/* HEADER */
 .header {
-  height: 50px; /* Fixed small height */
-  flex-shrink: 0; /* Never shrink */
+  height: 55px;
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 15px;
-  background: #333333; /* Darker header */
-  border-bottom: 1px solid #111;
+  padding: 0 20px;
+  background: var(--bg-darker);
+  border-bottom: 1px solid var(--border);
 }
 
 .logo {
   font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.9rem;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  background: #22c55e;
-  border-radius: 50%;
+  font-size: 1rem;
+  letter-spacing: -0.5px;
 }
 
 .controls {
   display: flex;
-  gap: 10px;
+  gap: 12px;
+  align-items: center;
 }
 
-.lang-select {
-  background: #3c3c3c;
+/* New Feature: Zoom Buttons */
+.zoom-controls {
+  display: flex;
+  gap: 2px;
+  margin-right: 10px;
+}
+
+.zoom-controls button {
+  background: #333;
   color: #fff;
-  border: 1px solid #555;
-  padding: 5px 10px;
+  border: 1px solid #444;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: 0.2s;
+}
+.zoom-controls button:first-child { border-radius: 4px 0 0 4px; }
+.zoom-controls button:last-child { border-radius: 0 4px 4px 0; }
+.zoom-controls button:hover { background: #444; }
+
+.lang-select {
+  background: #2d2d2d;
+  color: #fff;
+  border: 1px solid #444;
+  padding: 6px 12px;
   border-radius: 4px;
-  font-family: 'JetBrains Mono', monospace;
   outline: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
 }
 
 .run-btn {
-  background: var(--accent);
-  color: var(--run-btn-text);
+  background: var(--success);
+  color: #fff;
   border: none;
-  padding: 5px 15px;
+  padding: 6px 20px;
   border-radius: 4px;
   font-weight: 600;
+  font-size: 0.85rem;
   cursor: pointer;
+  transition: 0.2s;
+}
+
+.run-btn:hover { opacity: 0.9; }
+.run-btn:disabled { background: #555; cursor: wait; }
+
+/* WORKSPACE */
+.workspace {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.editor-panel {
+  flex: 2;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+/* New: Header inside panels */
+.panel-header-row, .panel-header {
+  height: 35px;
+  background: #252526;
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 0.8rem;
+  justify-content: space-between;
+  padding: 0 15px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.run-btn:hover { background: #1177bb; }
-
-/* --- WORKSPACE (The Middle Area) --- */
-.workspace {
-  display: flex;
-  flex: 1; /* Takes all remaining height */
-  overflow: hidden; /* No scroll on container */
+.icon-btn, .clear-btn {
+  background: transparent;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 0.75rem;
 }
-
-/* EDITOR PANEL */
-.editor-panel {
-  flex: 2; /* 66% width */
-  border-right: 1px solid #111;
-  position: relative;
-  /* Monaco handles its own scrolling */
-}
+.icon-btn:hover, .clear-btn:hover { color: #fff; text-decoration: underline; }
 
 /* IO PANEL */
 .io-panel {
-  flex: 1; /* 33% width */
+  flex: 1;
   display: flex;
   flex-direction: column;
   background: var(--bg-main);
 }
 
-.input-section, .output-section {
-  flex: 1; /* Split height 50/50 */
+.io-section {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  border-bottom: 1px solid var(--border);
-  min-height: 0; /* Critical for flex scrolling */
+  min-height: 0;
 }
 
-.output-section {
-  border-bottom: none;
-  background: #1e1e1e;
-}
-
-.panel-header {
-  padding: 8px 15px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  background: #252526;
-  color: #aaa;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--border);
-}
+.input-section { border-bottom: 1px solid var(--border); }
 
 .custom-input, .output-terminal {
   flex: 1;
-  width: 100%;
   background: transparent;
   border: none;
-  color: #ddd;
+  color: #d4d4d4;
   padding: 15px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   resize: none;
   outline: none;
+  line-height: 1.5;
 }
 
-/* --- STATUS BAR --- */
-.status-bar {
-  height: 25px; /* Tiny footer */
-  flex-shrink: 0;
-  background: #007acc; /* VS Code Blue Footer */
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 15px;
-  font-size: 0.7rem;
-  font-family: system-ui;
-}
-
-.status-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
+.output-terminal.error { color: #ff6b6b; }
