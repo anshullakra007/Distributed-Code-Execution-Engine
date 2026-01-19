@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  # 1. Your Backend Service
+  api:
+    build: ./api  # Points to your existing api/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  # 2. Your Frontend Service (Optional, good for completeness)
+  client:
+    build: ./client
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
