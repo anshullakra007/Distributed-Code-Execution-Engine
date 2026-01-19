@@ -1,38 +1,41 @@
 import { useState } from 'react';
+import Editor from '@monaco-editor/react'; // 👈 The Pro Editor
 import './App.css';
 
-// ⚠️ IMPORT YOUR EDITOR COMPONENT HERE (e.g., CodeMirror or Monaco)
-// import CodeMirror from '@uiw/react-codemirror'; 
-
 function App() {
-  // --- YOUR EXISTING STATE ---
-  const [code, setCode] = useState('// Write your C++ code here...');
+  // --- STATE ---
+  const [code, setCode] = useState('// Write your C++ code here...\n#include <iostream>\n\nint main() {\n    std::cout << "Hello World";\n    return 0;\n}');
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [language, setLanguage] = useState('cpp');
   const [isLoading, setIsLoading] = useState(false);
 
-  // --- YOUR RUN FUNCTION (Keep your logic!) ---
+  // --- LANGUAGE MAP (Dropdown -> Editor Language ID) ---
+  const languageMap = {
+    cpp: "cpp",
+    java: "java",
+    python: "python"
+  };
+
+  // --- RUN LOGIC ---
   const handleRun = async () => {
     setIsLoading(true);
-    setOutput("Executing on distributed node...");
+    setOutput("Running on distributed node...");
     
-    // ... INSERT YOUR FETCH/API LOGIC HERE ...
-    
-    // Simulation for demo:
+    // Simulate API Call (Replace with your real fetch)
     setTimeout(() => {
       setOutput("Hello, Distributed World!\nProcess finished with exit code 0.");
       setIsLoading(false);
-    }, 1000);
+    }, 1500);
   };
 
   return (
     <div className="app-container">
       
-      {/* 1. PROFESSIONAL HEADER */}
+      {/* 1. HEADER */}
       <header className="header">
         <div className="logo">
-          <div className="status-dot"></div> {/* "Online" Indicator */}
+          <div className="status-dot"></div>
           <span>DISTRIBUTED ENGINE</span>
         </div>
         
@@ -53,47 +56,41 @@ function App() {
         </div>
       </header>
 
-      {/* 2. MAIN WORKSPACE (VS Code Style Layout) */}
+      {/* 2. MAIN WORKSPACE */}
       <div className="workspace">
         
-        {/* Left: Code Editor */}
+        {/* LEFT: CODE EDITOR (VS Code Engine) */}
         <div className="editor-panel">
-          {/* <div className="panel-header">MAIN.CPP</div> */}
-          
-          {/* ⚠️ PUT YOUR CODE EDITOR COMPONENT HERE */}
-          {/* Example: */}
-          {/* <CodeMirror 
-              value={code} 
-              height="100%" 
-              theme="dark" 
-              onChange={(val) => setCode(val)} 
-          /> */}
-          
-          {/* Fallback textarea if you don't have the editor component handy yet */}
-          <textarea 
-            className="custom-input" 
-            style={{fontFamily: 'JetBrains Mono', lineHeight: 1.5}}
+          <Editor
+            height="100%"
+            language={languageMap[language]}
+            theme="vs-dark" // 👈 The VS Code Dark Theme
             value={code}
-            onChange={(e) => setCode(e.target.value)}
-            spellCheck="false"
+            onChange={(value) => setCode(value)}
+            options={{
+              fontSize: 14,
+              minimap: { enabled: false }, // Hide the mini-map to save space
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+            }}
           />
         </div>
 
-        {/* Right: I/O Panels */}
+        {/* RIGHT: I/O PANELS */}
         <div className="io-panel">
           
-          {/* Top Right: Input */}
+          {/* Input Area */}
           <div className="input-section">
             <div className="panel-header">STDIN (Input)</div>
             <textarea 
               className="custom-input"
-              placeholder="Enter input for your program..."
+              placeholder="Enter input..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
             />
           </div>
 
-          {/* Bottom Right: Output */}
+          {/* Output Area */}
           <div className="output-section">
             <div className="panel-header">STDOUT (Terminal)</div>
             <textarea 
@@ -107,7 +104,7 @@ function App() {
         </div>
       </div>
 
-      {/* 3. FAKE STATUS BAR (Adds "Engineering" feel) */}
+      {/* 3. STATUS BAR */}
       <footer className="status-bar">
         <div className="status-item">STATUS: <span>CONNECTED</span></div>
         <div className="status-item">NODE: <span>AWS-AP-SOUTH-1</span></div>

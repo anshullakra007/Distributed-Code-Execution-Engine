@@ -1,193 +1,169 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
 
 :root {
-  --bg-main: #000000;      /* Deepest Black */
-  --bg-panel: #09090b;     /* Slightly lighter for panels */
-  --border: #27272a;       /* Subtle dark border */
-  --text-main: #ffffff;
-  --text-muted: #a1a1aa;
-  --accent: #ffffff;       /* Monochrome Accent */
-  --terminal-green: #22c55e; /* Matrix green for success */
-  --terminal-red: #ef4444;   /* Error red */
+  --bg-main: #1e1e1e;      /* VS Code Dark Grey */
+  --bg-panel: #252526;     /* Slightly lighter */
+  --border: #333333;       
+  --text-main: #cccccc;
+  --accent: #0e639c;       /* VS Code Blue */
+  --run-btn-text: #ffffff;
 }
 
 * { box-sizing: border-box; }
 
-body {
+body, html {
   margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden; /* 🛑 STOPS WHOLE PAGE SCROLLING */
   background-color: var(--bg-main);
   color: var(--text-main);
   font-family: 'Inter', sans-serif;
-  height: 100vh;
-  overflow: hidden; /* App-like feel, no window scroll */
 }
 
-/* --- MAIN LAYOUT --- */
 .app-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100vh; /* Forces exact screen height */
+  width: 100vw;
 }
 
 /* --- HEADER --- */
 .header {
+  height: 50px; /* Fixed small height */
+  flex-shrink: 0; /* Never shrink */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
-  height: 60px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-main);
+  padding: 0 15px;
+  background: #333333; /* Darker header */
+  border-bottom: 1px solid #111;
 }
 
 .logo {
   font-family: 'JetBrains Mono', monospace;
-  font-weight: 800;
-  letter-spacing: -0.05em;
-  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
   display: flex;
   align-items: center;
   gap: 10px;
+  font-size: 0.9rem;
 }
 
 .status-dot {
   width: 8px;
   height: 8px;
-  background: var(--terminal-green);
+  background: #22c55e;
   border-radius: 50%;
-  box-shadow: 0 0 8px var(--terminal-green);
 }
 
 .controls {
   display: flex;
-  gap: 15px;
-  align-items: center;
+  gap: 10px;
 }
 
-/* --- SELECT DROPDOWN --- */
 .lang-select {
-  background: var(--bg-panel);
-  color: var(--text-main);
-  border: 1px solid var(--border);
-  padding: 8px 12px;
-  border-radius: 6px;
+  background: #3c3c3c;
+  color: #fff;
+  border: 1px solid #555;
+  padding: 5px 10px;
+  border-radius: 4px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.85rem;
   outline: none;
-  cursor: pointer;
-  transition: border-color 0.2s;
 }
 
-.lang-select:hover { border-color: var(--text-muted); }
-
-/* --- RUN BUTTON (The Star) --- */
 .run-btn {
   background: var(--accent);
-  color: #000; /* Inverted high contrast */
+  color: var(--run-btn-text);
   border: none;
-  padding: 10px 24px;
-  border-radius: 6px;
-  font-weight: 800;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  padding: 5px 15px;
+  border-radius: 4px;
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
-  transition: transform 0.1s, opacity 0.2s;
+  gap: 5px;
+  font-size: 0.8rem;
 }
 
-.run-btn:hover { opacity: 0.9; }
-.run-btn:active { transform: scale(0.98); }
+.run-btn:hover { background: #1177bb; }
 
-/* --- WORKSPACE GRID --- */
+/* --- WORKSPACE (The Middle Area) --- */
 .workspace {
   display: flex;
-  flex: 1; /* Fills remaining height */
-  overflow: hidden;
+  flex: 1; /* Takes all remaining height */
+  overflow: hidden; /* No scroll on container */
 }
 
-/* Left Side: Code Editor */
+/* EDITOR PANEL */
 .editor-panel {
-  flex: 2; /* Takes 66% width */
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
+  flex: 2; /* 66% width */
+  border-right: 1px solid #111;
+  position: relative;
+  /* Monaco handles its own scrolling */
 }
 
-/* Right Side: I/O */
+/* IO PANEL */
 .io-panel {
-  flex: 1; /* Takes 33% width */
+  flex: 1; /* 33% width */
   display: flex;
   flex-direction: column;
-  background: var(--bg-panel);
+  background: var(--bg-main);
 }
 
-/* Panel Headers (Input / Output labels) */
+.input-section, .output-section {
+  flex: 1; /* Split height 50/50 */
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border);
+  min-height: 0; /* Critical for flex scrolling */
+}
+
+.output-section {
+  border-bottom: none;
+  background: #1e1e1e;
+}
+
 .panel-header {
-  padding: 10px 15px;
-  font-size: 0.75rem;
+  padding: 8px 15px;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--text-muted);
+  background: #252526;
+  color: #aaa;
+  letter-spacing: 0.05em;
   border-bottom: 1px solid var(--border);
-  background: var(--bg-main);
-  letter-spacing: 0.1em;
 }
 
-/* Text Areas */
 .custom-input, .output-terminal {
   flex: 1;
   width: 100%;
   background: transparent;
   border: none;
-  color: var(--text-main);
+  color: #ddd;
   padding: 15px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.9rem;
-  resize: none; /* Disable drag resize */
+  font-size: 0.85rem;
+  resize: none;
   outline: none;
 }
 
-/* Input Section */
-.input-section {
-  flex: 1;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-}
-
-/* Output Section */
-.output-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: #000; /* Darker for terminal feel */
-}
-
-.output-terminal {
-  color: var(--text-muted);
-}
-.output-terminal.success { color: var(--text-main); }
-.output-terminal.error { color: var(--terminal-red); }
-
-/* --- STATUS BAR (The "Pro" Touch) --- */
+/* --- STATUS BAR --- */
 .status-bar {
-  height: 30px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-main);
+  height: 25px; /* Tiny footer */
+  flex-shrink: 0;
+  background: #007acc; /* VS Code Blue Footer */
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 15px;
   font-size: 0.7rem;
-  color: var(--text-muted);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: system-ui;
 }
 
 .status-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
