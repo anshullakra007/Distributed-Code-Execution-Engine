@@ -20,18 +20,13 @@ public class DockerSandboxService {
      */
     @PostConstruct
     public void initializeWarmContainers() {
-        // 1. C++ Container (GCC)
         startContainer(CPP_CONTAINER, "gcc:latest");
-
-        // 2. Java Container (OpenJDK)
         startContainer(JAVA_CONTAINER, "openjdk:17-jdk-slim");
-
-        // 3. Python Container (Slim version for speed)
         startContainer(PY_CONTAINER, "python:3.10-slim");
     }
 
     /**
-     * 🔴 ON SHUTDOWN: Clean up the mess.
+     * 🔴 ON SHUTDOWN: Clean up.
      */
     @PreDestroy
     public void cleanup() {
@@ -45,7 +40,7 @@ public class DockerSandboxService {
             // Check if already running
             Process check = new ProcessBuilder("docker", "ps", "-q", "-f", "name=" + name).start();
             if (new String(check.getInputStream().readAllBytes()).trim().isEmpty()) {
-                // Remove any dead container with the same name
+                // Remove dead container
                 new ProcessBuilder("docker", "rm", "-f", name).start().waitFor();
                 
                 // Start new warm container (Detached)
@@ -93,7 +88,6 @@ public class DockerSandboxService {
 
         try {
             // STEP 1: Inject Code into the Container
-            // We use 'sh -c cat > filename' and pipe the code into it. This avoids file permission issues.
             Process writeProcess = new ProcessBuilder("docker", "exec", "-i", containerName, "sh", "-c", "cat > " + fileName).start();
             try (OutputStream os = writeProcess.getOutputStream()) {
                 os.write(code.getBytes());
@@ -114,27 +108,18 @@ public class DockerSandboxService {
             );
             pb.redirectErrorStream(true);
             
-            long start = System.currentTimeMillis();
             Process runProcess = pb.start();
 
             // Timeout Logic (Fast fail)
             boolean finished = runProcess.waitFor(5, TimeUnit.SECONDS);
             
             if (!finished) {
-                // If it hangs (infinite loop), we just kill the PROCESS inside the container, 
-                // NOT the container itself.
                 runProcess.destroyForcibly();
-                // Optional: Kill the specific PID inside docker to be clean (advanced), 
-                // but for now, we leave the zombie process or restart container if needed.
                 return "Error: Time Limit Exceeded";
             }
 
             // STEP 4: Read Output
             String output = new String(runProcess.getInputStream().readAllBytes());
-            long timeTaken = System.currentTimeMillis() - start;
-
-            // Optional: Append timing info for debugging
-            // return output.trim() + "\n\n[Execution Time: " + timeTaken + "ms]";
             return output.trim();
 
         } catch (Exception e) {
