@@ -21,7 +21,7 @@ public class DockerSandboxService {
             switch (language) {
                 case "cpp":
                     sourceFile = new File(tempDir.toFile(), "Solution.cpp");
-                    // Compile and Run
+                    // Compile and Run directly (Native Speed)
                     runCommand = "g++ -o solution Solution.cpp && ./solution < input.txt";
                     break;
                 case "java":
@@ -52,7 +52,7 @@ public class DockerSandboxService {
             long startTime = System.currentTimeMillis();
             Process process = pb.start();
 
-            // 5. Set Timeout (5 seconds) to prevent infinite loops
+            // 5. Set Timeout (5 seconds)
             boolean finished = process.waitFor(5, TimeUnit.SECONDS);
 
             if (!finished) {
@@ -68,10 +68,10 @@ public class DockerSandboxService {
                 output.append(line).append("\n");
             }
 
-            // 7. Cleanup (Delete temp files)
+            // 7. Cleanup
             Files.walk(tempDir)
                 .map(Path::toFile)
-                .sorted((o1, o2) -> -o1.compareTo(o2)) // Delete files first, then directory
+                .sorted((o1, o2) -> -o1.compareTo(o2))
                 .forEach(File::delete);
 
             return output.toString().trim();

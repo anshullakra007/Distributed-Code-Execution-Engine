@@ -1,7 +1,7 @@
 # Use a lightweight Java image
 FROM openjdk:17-jdk-slim
 
-# 🟢 CRITICAL: Install C++ (g++) and Python inside the container
+# 🟢 CRITICAL: Install C++ (g++) and Python inside the backend container
 RUN apt-get update && apt-get install -y \
     g++ \
     python3 \
@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy the built jar (Ensure your maven build creates this)
+# Copy the built jar
 COPY target/*.jar app.jar
 
 # Expose port
