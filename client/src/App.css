@@ -1,169 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;700&display=swap');
+/* --- NEW FEATURES STYLING --- */
 
-:root {
-  --bg-main: #1e1e1e;
-  --bg-darker: #181818;
-  --border: #333;
-  --text: #e0e0e0;
-  --accent: #0078d4;
-  --success: #28a745;
-  --danger: #d73a49;
-}
-
-body, html {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  background: var(--bg-main);
-  color: var(--text);
-  font-family: 'Inter', sans-serif;
-  overflow: hidden;
-}
-
-.app-container {
+/* Metrics Bar inside Output Header */
+.metrics {
   display: flex;
-  flex-direction: column;
-  height: 100vh;
-}
-
-/* HEADER */
-.header {
-  height: 55px;
-  flex-shrink: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
-  background: var(--bg-darker);
-  border-bottom: 1px solid var(--border);
-}
-
-.logo {
+  gap: 15px;
+  font-size: 0.75rem;
   font-family: 'JetBrains Mono', monospace;
-  font-weight: 700;
-  font-size: 1rem;
-  letter-spacing: -0.5px;
+  background: #1e1e1e;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #333;
 }
 
-.controls {
+.metric-success { color: var(--success); font-weight: bold; }
+.metric-error { color: var(--danger); font-weight: bold; }
+
+/* Editor Actions (Reset/Copy) */
+.editor-actions {
   display: flex;
-  gap: 12px;
-  align-items: center;
+  gap: 10px;
 }
 
-/* New Feature: Zoom Buttons */
-.zoom-controls {
-  display: flex;
-  gap: 2px;
-  margin-right: 10px;
-}
-
-.zoom-controls button {
-  background: #333;
+/* Tooltip hints */
+.run-btn[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #000;
   color: #fff;
-  border: 1px solid #444;
   padding: 4px 8px;
-  cursor: pointer;
-  font-size: 0.75rem;
-  transition: 0.2s;
-}
-.zoom-controls button:first-child { border-radius: 4px 0 0 4px; }
-.zoom-controls button:last-child { border-radius: 0 4px 4px 0; }
-.zoom-controls button:hover { background: #444; }
-
-.lang-select {
-  background: #2d2d2d;
-  color: #fff;
-  border: 1px solid #444;
-  padding: 6px 12px;
+  font-size: 10px;
   border-radius: 4px;
-  outline: none;
-  font-family: 'Inter', sans-serif;
-  font-size: 0.85rem;
+  white-space: nowrap;
+  pointer-events: none;
 }
-
-.run-btn {
-  background: var(--success);
-  color: #fff;
-  border: none;
-  padding: 6px 20px;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.run-btn:hover { opacity: 0.9; }
-.run-btn:disabled { background: #555; cursor: wait; }
-
-/* WORKSPACE */
-.workspace {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-}
-
-.editor-panel {
-  flex: 2;
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-}
-
-/* New: Header inside panels */
-.panel-header-row, .panel-header {
-  height: 35px;
-  background: #252526;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 15px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #aaa;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.icon-btn, .clear-btn {
-  background: transparent;
-  border: none;
-  color: #aaa;
-  cursor: pointer;
-  font-size: 0.75rem;
-}
-.icon-btn:hover, .clear-btn:hover { color: #fff; text-decoration: underline; }
-
-/* IO PANEL */
-.io-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-main);
-}
-
-.io-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.input-section { border-bottom: 1px solid var(--border); }
-
-.custom-input, .output-terminal {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: #d4d4d4;
-  padding: 15px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.9rem;
-  resize: none;
-  outline: none;
-  line-height: 1.5;
-}
-
-.output-terminal.error { color: #ff6b6b; }
