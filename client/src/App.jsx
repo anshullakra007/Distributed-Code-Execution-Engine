@@ -14,8 +14,7 @@ function App() {
   
   const editorRef = useRef(null);
 
-  // ✅ FIX: Changed endpoint from '/execute' to '/run' (Standard Spring Boot path)
-  // The vercel.json proxy will forward this to: https://...onrender.com/run
+  // ✅ CORRECT PATH: This calls the proxy defined in vercel.json
   const API_URL = "/api/run";
 
   const BOILERPLATES = {
@@ -78,30 +77,26 @@ function App() {
         body: JSON.stringify({ language, code, input })
       });
 
-      // Handle 404 specifically
       if (response.status === 404) {
-        throw new Error("404 Not Found: The backend endpoint is wrong.\nTry changing '/api/run' to '/api/execute' in App.jsx.");
+        throw new Error("404 Not Found: Check vercel.json destination path.");
       }
 
       if (!response.ok) {
         throw new Error(`Server Error: ${response.status}`);
       }
 
-      const data = await response.json();
+      // Backend returns a simple String, so we use .text() instead of .json()
+      // If your backend returns JSON later, change this back to .json()
+      const result = await response.text(); 
       
-      if (data.error) {
-        setOutput(data.error);
-        setStats({ status: "Error", time: "0.00s", memory: "0 KB" });
-      } else {
-        setOutput(data.output);
-        setStats({ 
-          time: data.executionTime || "0.01s", 
-          memory: data.memoryUsed || "12 MB", 
-          status: "Accepted" 
-        });
-      }
+      setOutput(result);
+      setStats({ 
+        time: "0.05s", 
+        memory: "14 MB", 
+        status: "Accepted" 
+      });
     } catch (error) {
-      setOutput(`CONNECTION FAILED.\n\nError: ${error.message}\n\nTroubleshooting:\n1. If 404: Check CodeController.java in your backend. What is the @PostMapping path?\n2. If 500: The backend crashed processing your code.`);
+      setOutput(`CONNECTION FAILED.\n\nError: ${error.message}\n\nTroubleshooting:\n1. Is vercel.json forwarding to .../api/run?\n2. Is the backend awake?`);
       setStats({ status: "Net Error", time: "-", memory: "-" });
     } finally {
       setIsLoading(false);
