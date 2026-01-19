@@ -1,126 +1,80 @@
 package com.codeengine.api;
 
 import org.springframework.stereotype.Service;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
 @Service
 public class DockerSandboxService {
 
-    // Define names for our permanent "warm" containers
-    private static final String CPP_CONTAINER = "warm-cpp-runner";
-    private static final String JAVA_CONTAINER = "warm-java-runner";
-    private static final String PY_CONTAINER = "warm-py-runner";
-
-    /**
-     * 🟢 ON STARTUP: Wake up the containers!
-     * We start them once and keep them running forever with "tail -f /dev/null".
-     */
-    @PostConstruct
-    public void initializeWarmContainers() {
-        startContainer(CPP_CONTAINER, "gcc:latest");
-        startContainer(JAVA_CONTAINER, "openjdk:17-jdk-slim");
-        startContainer(PY_CONTAINER, "python:3.10-slim");
-    }
-
-    /**
-     * 🔴 ON SHUTDOWN: Clean up.
-     */
-    @PreDestroy
-    public void cleanup() {
-        stopContainer(CPP_CONTAINER);
-        stopContainer(JAVA_CONTAINER);
-        stopContainer(PY_CONTAINER);
-    }
-
-    private void startContainer(String name, String image) {
-        try {
-            // Check if already running
-            Process check = new ProcessBuilder("docker", "ps", "-q", "-f", "name=" + name).start();
-            if (new String(check.getInputStream().readAllBytes()).trim().isEmpty()) {
-                // Remove dead container
-                new ProcessBuilder("docker", "rm", "-f", name).start().waitFor();
-                
-                // Start new warm container (Detached)
-                System.out.println("🚀 Warming up container: " + name);
-                new ProcessBuilder("docker", "run", "-d", "--name", name, image, "tail", "-f", "/dev/null").start().waitFor();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void stopContainer(String name) {
-        try {
-            new ProcessBuilder("docker", "rm", "-f", name).start().waitFor();
-        } catch (Exception e) { /* Ignore */ }
-    }
-
-    /**
-     * ⚡ FAST EXECUTE: Uses 'docker exec' on existing containers.
-     */
     public String executeCode(String language, String code, String input) {
-        String containerName;
-        String fileName;
-        String runCommand;
-
-        switch (language) {
-            case "cpp":
-                containerName = CPP_CONTAINER;
-                fileName = "Solution.cpp";
-                runCommand = "g++ -o solution Solution.cpp && ./solution";
-                break;
-            case "java":
-                containerName = JAVA_CONTAINER;
-                fileName = "Main.java";
-                runCommand = "javac Main.java && java Main";
-                break;
-            case "python":
-                containerName = PY_CONTAINER;
-                fileName = "script.py";
-                runCommand = "python3 script.py";
-                break;
-            default:
-                return "Error: Unsupported language";
-        }
-
         try {
-            // STEP 1: Inject Code into the Container
-            Process writeProcess = new ProcessBuilder("docker", "exec", "-i", containerName, "sh", "-c", "cat > " + fileName).start();
-            try (OutputStream os = writeProcess.getOutputStream()) {
-                os.write(code.getBytes());
+            // 1. Create a temporary folder for this run
+            Path tempDir = Files.createTempDirectory("native-run-");
+            File sourceFile;
+            File inputFile = new File(tempDir.toFile(), "input.txt");
+            String runCommand;
+
+            // 2. Setup based on language
+            switch (language) {
+                case "cpp":
+                    sourceFile = new File(tempDir.toFile(), "Solution.cpp");
+                    // Compile directly on the server
+                    runCommand = "g++ -o solution Solution.cpp && ./solution < input.txt";
+                    break;
+                case "java":
+                    sourceFile = new File(tempDir.toFile(), "Main.java");
+                    runCommand = "javac Main.java && java Main < input.txt";
+                    break;
+                case "python":
+                    sourceFile = new File(tempDir.toFile(), "script.py");
+                    runCommand = "python3 script.py < input.txt";
+                    break;
+                default:
+                    return "Error: Unsupported language";
             }
-            writeProcess.waitFor();
 
-            // STEP 2: Inject Input File
-            Process writeInput = new ProcessBuilder("docker", "exec", "-i", containerName, "sh", "-c", "cat > input.txt").start();
-            try (OutputStream os = writeInput.getOutputStream()) {
-                os.write((input == null ? "" : input).getBytes());
+            // 3. Write Code and Input to disk
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(sourceFile))) {
+                writer.write(code);
             }
-            writeInput.waitFor();
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(inputFile))) {
+                writer.write(input == null ? "" : input);
+            }
 
-            // STEP 3: Execute the Run Command
-            ProcessBuilder pb = new ProcessBuilder(
-                "docker", "exec", "-i", containerName, 
-                "sh", "-c", runCommand + " < input.txt"
-            );
-            pb.redirectErrorStream(true);
-            
-            Process runProcess = pb.start();
+            // 4. Run the Command Natively (No Docker)
+            ProcessBuilder pb = new ProcessBuilder("sh", "-c", runCommand);
+            pb.directory(tempDir.toFile()); // Run inside the temp folder
+            pb.redirectErrorStream(true);   // Merge error/output
 
-            // Timeout Logic (Fast fail)
-            boolean finished = runProcess.waitFor(5, TimeUnit.SECONDS);
-            
+            long startTime = System.currentTimeMillis();
+            Process process = pb.start();
+
+            // 5. Timeout (Fast for Native Code)
+            boolean finished = process.waitFor(5, TimeUnit.SECONDS);
+
             if (!finished) {
-                runProcess.destroyForcibly();
+                process.destroyForcibly();
                 return "Error: Time Limit Exceeded";
             }
 
-            // STEP 4: Read Output
-            String output = new String(runProcess.getInputStream().readAllBytes());
-            return output.trim();
+            // 6. Read Output
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            StringBuilder output = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+
+            // 7. Cleanup (Important!)
+            Files.walk(tempDir)
+                .map(Path::toFile)
+                .sorted((o1, o2) -> -o1.compareTo(o2)) // Delete files first, then dir
+                .forEach(File::delete);
+
+            return output.toString().trim();
 
         } catch (Exception e) {
             return "Server Error: " + e.getMessage();

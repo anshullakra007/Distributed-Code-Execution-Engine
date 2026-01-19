@@ -1,8 +1,7 @@
-# Use a base image with Java 21 (running on Linux Ubuntu)
-FROM eclipse-temurin:21-jdk-jammy
+# Use a lightweight Java image
+FROM openjdk:17-jdk-slim
 
-# 🟢 INSTALL COMPILERS (C++ and Python)
-# This is the missing step!
+# 🟢 CRITICAL: Install C++ (g++) and Python inside the container
 RUN apt-get update && apt-get install -y \
     g++ \
     python3 \
@@ -11,12 +10,11 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy project files
-COPY . .
+# Copy the built jar (Ensure your maven build creates this)
+COPY target/*.jar app.jar
 
-# Build the application
-# (using -DskipTests to make it faster)
-RUN ./mvnw clean package -DskipTests
+# Expose port
+EXPOSE 8080
 
-# Run the application
-ENTRYPOINT ["java", "-jar", "target/api-0.0.1-SNAPSHOT.jar"]
+# Run the app
+ENTRYPOINT ["java", "-jar", "app.jar"]
