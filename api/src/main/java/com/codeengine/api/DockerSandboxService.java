@@ -11,17 +11,17 @@ public class DockerSandboxService {
 
     public String executeCode(String language, String code, String input) {
         try {
-            // 1. Create a temporary folder for this run
+            // 1. Create a unique temporary folder for this request
             Path tempDir = Files.createTempDirectory("native-run-");
             File sourceFile;
             File inputFile = new File(tempDir.toFile(), "input.txt");
             String runCommand;
 
-            // 2. Setup based on language
+            // 2. Configure command based on language
             switch (language) {
                 case "cpp":
                     sourceFile = new File(tempDir.toFile(), "Solution.cpp");
-                    // Compile directly on the server
+                    // Compile and Run
                     runCommand = "g++ -o solution Solution.cpp && ./solution < input.txt";
                     break;
                 case "java":
@@ -44,15 +44,15 @@ public class DockerSandboxService {
                 writer.write(input == null ? "" : input);
             }
 
-            // 4. Run the Command Natively (No Docker)
+            // 4. Run the command natively (NO Docker)
             ProcessBuilder pb = new ProcessBuilder("sh", "-c", runCommand);
             pb.directory(tempDir.toFile()); // Run inside the temp folder
-            pb.redirectErrorStream(true);   // Merge error/output
+            pb.redirectErrorStream(true);   // Merge error output with standard output
 
             long startTime = System.currentTimeMillis();
             Process process = pb.start();
 
-            // 5. Timeout (Fast for Native Code)
+            // 5. Set Timeout (5 seconds) to prevent infinite loops
             boolean finished = process.waitFor(5, TimeUnit.SECONDS);
 
             if (!finished) {
@@ -68,10 +68,10 @@ public class DockerSandboxService {
                 output.append(line).append("\n");
             }
 
-            // 7. Cleanup (Important!)
+            // 7. Cleanup (Delete temp files)
             Files.walk(tempDir)
                 .map(Path::toFile)
-                .sorted((o1, o2) -> -o1.compareTo(o2)) // Delete files first, then dir
+                .sorted((o1, o2) -> -o1.compareTo(o2)) // Delete files first, then directory
                 .forEach(File::delete);
 
             return output.toString().trim();
