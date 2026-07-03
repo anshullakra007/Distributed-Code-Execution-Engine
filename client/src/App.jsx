@@ -1,126 +1,207 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import './App.css';
+
+const BOILERPLATES = {
+  cpp: `#include <iostream>
+using namespace std;
+
+int main() {
+    int a, b;
+    if (cin >> a >> b) {
+        cout << "Sum: " << (a + b) << endl;
+    } else {
+        cout << "Hello World!" << endl;
+    }
+    return 0;
+}`,
+  java: `import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        if (scanner.hasNextInt()) {
+            int a = scanner.nextInt();
+            int b = scanner.nextInt();
+            System.out.println("Sum: " + (a + b));
+        } else {
+            System.out.println("Hello World!");
+        }
+    }
+}`,
+  python: `import sys
+
+lines = sys.stdin.read().split()
+if len(lines) >= 2:
+    a, b = int(lines[0]), int(lines[1])
+    print(f"Sum: {a + b}")
+else:
+    print("Hello World!")`
+};
+
+const LANGUAGE_LABELS = {
+  cpp: 'C++17',
+  java: 'Java 21',
+  python: 'Python 3'
+};
+
+function formatMs(ms) {
+  if (ms == null || ms < 0) return '—';
+  if (ms < 1000) return `${ms} ms`;
+  return `${(ms / 1000).toFixed(2)} s`;
+}
+
+function formatMemory(kb) {
+  if (kb == null) return '—';
+  if (kb < 1024) return `${kb} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
+}
+
+function statusLabel(status) {
+  switch (status) {
+    case 'ACCEPTED': return 'Accepted';
+    case 'COMPILATION_ERROR': return 'Compile Error';
+    case 'RUNTIME_ERROR': return 'Runtime Error';
+    case 'TIME_LIMIT_EXCEEDED': return 'Time Limit Exceeded';
+    case 'ERROR': return 'Error';
+    default: return status || '—';
+  }
+}
+
+function isErrorStatus(status) {
+  return status && status !== 'ACCEPTED';
+}
 
 function App() {
   const [language, setLanguage] = useState(localStorage.getItem('language') || 'cpp');
   const [code, setCode] = useState(localStorage.getItem('savedCode') || '');
-  const [theme, setTheme] = useState('vs-dark');
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'vs-dark');
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
-  const [stats, setStats] = useState({ time: null, memory: null, status: null });
+  const [activePanel, setActivePanel] = useState('output');
+  const [stats, setStats] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [fontSize, setFontSize] = useState(parseInt(localStorage.getItem('fontSize')) || 14);
-  
+  const [fontSize, setFontSize] = useState(parseInt(localStorage.getItem('fontSize'), 10) || 14);
+  const [cursor, setCursor] = useState({ line: 1, col: 1 });
+
   const editorRef = useRef(null);
 
-  const API_URL = "/api/run";
-
-  const BOILERPLATES = {
-    cpp: `#include <iostream>\nusing namespace std;\n\nint main() {\n    int a, b;\n    if (cin >> a >> b) {\n        cout << "Sum: " << (a + b) << endl;\n    } else {\n        cout << "Hello Distributed World!" << endl;\n    }\n    return 0;\n}`,
-    java: `import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (scanner.hasNextInt()) {\n            int a = scanner.nextInt();\n            int b = scanner.nextInt();\n            System.out.println("Sum: " + (a + b));\n        } else {\n            System.out.println("Hello Distributed World!");\n        }\n    }\n}`,
-    python: `import sys\n\ntry:\n    lines = sys.stdin.read().split()\n    if len(lines) >= 2:\n        a = int(lines[0])\n        b = int(lines[1])\n        print(f"Sum: {a + b}")\n    else:\n        print("Hello Distributed World!")\nexcept Exception:\n    print("Hello Distributed World!")`
-  };
-
   useEffect(() => {
-    if (!localStorage.getItem('savedCode')) setCode(BOILERPLATES[language]);
+    if (!localStorage.getItem('savedCode')) {
+      setCode(BOILERPLATES[language]);
+    }
   }, []);
 
   useEffect(() => {
     localStorage.setItem('savedCode', code);
     localStorage.setItem('language', language);
     localStorage.setItem('fontSize', fontSize);
-  }, [code, language, fontSize]);
+    localStorage.setItem('theme', theme);
+  }, [code, language, fontSize, theme]);
+
+  const handleRun = useCallback(async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+    setOutput('');
+    setStats(null);
+    setActivePanel('output');
+
+    const clientStart = performance.now();
+
+    try {
+      const response = await fetch('/api/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language, code, input })
+      });
+
+      const result = await response.json();
+      const clientRoundTrip = Math.round(performance.now() - clientStart);
+
+      const displayText = isErrorStatus(result.status)
+        ? (result.error || result.output || 'Execution failed.')
+        : (result.output || '(no output)');
+
+      setOutput(displayText);
+      setStats({
+        status: result.status,
+        compileTimeMs: result.compileTimeMs,
+        runTimeMs: result.runTimeMs,
+        totalTimeMs: result.totalTimeMs,
+        memoryKb: result.memoryKb,
+        exitCode: result.exitCode,
+        clientRoundTripMs: clientRoundTrip
+      });
+    } catch (error) {
+      setOutput(`Network Error: ${error.message}`);
+      setStats({ status: 'ERROR', clientRoundTripMs: Math.round(performance.now() - clientStart) });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isLoading, language, code, input]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') handleRun();
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleRun();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [code, input, language]);
+  }, [handleRun]);
 
   const handleLanguageChange = (e) => {
     const newLang = e.target.value;
     setLanguage(newLang);
     setCode(BOILERPLATES[newLang]);
-    setStats({ time: null, memory: null, status: null });
+    setStats(null);
     setOutput('');
   };
 
   const handleDownload = () => {
-    const element = document.createElement("a");
-    const file = new Blob([code], {type: 'text/plain'});
+    const element = document.createElement('a');
+    const file = new Blob([code], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
     const ext = language === 'cpp' ? 'cpp' : language === 'java' ? 'java' : 'py';
-    element.download = `Solution.${ext}`;
+    element.download = `solution.${ext}`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
   };
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'vs-dark' ? 'light' : 'vs-dark');
-  };
-
-  const handleRun = async () => {
-    if (isLoading) return;
-    setIsLoading(true);
-    setOutput("Compiling and Executing...");
-    setStats({ time: null, memory: null, status: null });
-
-    try {
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ language, code, input })
-      });
-
-      const result = await response.text();
-      setOutput(result);
-
-      // 🔍 SMART PARSING: Check if the output actually contains an error
-      const isError = result.includes("Error:") || result.includes("Exception") || !response.ok;
-      
-      setStats({ 
-        // Only show speed if it actually worked
-        time: isError ? "-" : "0.05s", 
-        memory: isError ? "-" : "14 MB", 
-        status: isError ? "Error" : "Accepted" 
-      });
-
-    } catch (error) {
-      setOutput(`Network Error: ${error.message}`);
-      setStats({ status: "Net Error", time: "-", memory: "-" });
-    } finally {
-      setIsLoading(false);
-    }
+  const handleEditorMount = (editor) => {
+    editorRef.current = editor;
+    editor.onDidChangeCursorPosition(({ position }) => {
+      setCursor({ line: position.lineNumber, col: position.column });
+    });
   };
 
   return (
     <div className={`app-container ${theme}`}>
       <header className="header">
         <div className="logo">
-          <span className="logo-icon">⚡</span> DISTRIBUTED ENGINE
+          <span className="logo-icon">⚡</span>
+          Code Engine
         </div>
         <div className="controls">
-          <button className="icon-btn theme-btn" onClick={toggleTheme} title="Toggle Theme">
+          <button className="icon-btn theme-btn" onClick={() => setTheme(t => t === 'vs-dark' ? 'light' : 'vs-dark')} title="Toggle Theme">
             {theme === 'vs-dark' ? '☀️' : '🌙'}
           </button>
-          
+
           <div className="zoom-controls">
             <button onClick={() => setFontSize(s => Math.max(10, s - 1))} title="Decrease Font">A-</button>
             <button onClick={() => setFontSize(s => Math.min(24, s + 1))} title="Increase Font">A+</button>
           </div>
-          
+
           <select value={language} onChange={handleLanguageChange} className="lang-select">
-            <option value="cpp">C++ (GCC 9.2)</option>
+            <option value="cpp">C++ (GCC)</option>
             <option value="java">Java (JDK 21)</option>
-            <option value="python">Python 3.10</option>
+            <option value="python">Python 3</option>
           </select>
-          
+
           <button className="run-btn" onClick={handleRun} disabled={isLoading} title="Ctrl+Enter to Run">
-            {isLoading ? "Running..." : "▶ RUN"}
+            {isLoading ? 'Running…' : '▶ Run'}
           </button>
         </div>
       </header>
@@ -128,10 +209,10 @@ function App() {
       <div className="workspace">
         <div className="editor-panel">
           <div className="panel-header-row">
-            <span>SOURCE CODE</span>
+            <span>main.{language === 'cpp' ? 'cpp' : language === 'java' ? 'java' : 'py'}</span>
             <div className="editor-actions">
               <button className="icon-btn" onClick={() => setCode(BOILERPLATES[language])}>↺ Reset</button>
-              <button className="icon-btn" onClick={handleDownload}>⬇️ Save</button>
+              <button className="icon-btn" onClick={handleDownload}>⬇ Save</button>
               <button className="icon-btn" onClick={() => navigator.clipboard.writeText(code)}>📋 Copy</button>
             </div>
           </div>
@@ -140,52 +221,93 @@ function App() {
             language={language === 'cpp' ? 'cpp' : language}
             theme={theme}
             value={code}
-            onMount={(editor) => (editorRef.current = editor)}
-            onChange={(value) => setCode(value)}
+            onMount={handleEditorMount}
+            onChange={(value) => setCode(value ?? '')}
             options={{
-              fontSize: fontSize,
-              lineNumbers: "on",
-              minimap: { enabled: false },
+              fontSize,
+              lineNumbers: 'on',
+              minimap: { enabled: true },
               automaticLayout: true,
               tabSize: 4,
+              insertSpaces: true,
+              wordWrap: 'on',
+              scrollBeyondLastLine: false,
               fontFamily: "'JetBrains Mono', monospace",
+              renderWhitespace: 'selection',
+              smoothScrolling: true,
+              cursorBlinking: 'smooth',
+              padding: { top: 8 }
             }}
           />
         </div>
 
         <div className="io-panel">
-          <div className="io-section input-section">
-            <div className="panel-header">STDIN (Input)</div>
-            <textarea 
-              className="custom-input"
-              placeholder="Enter input here..."
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-            />
+          <div className="io-tabs">
+            <button
+              className={`io-tab ${activePanel === 'input' ? 'active' : ''}`}
+              onClick={() => setActivePanel('input')}
+            >
+              Input
+            </button>
+            <button
+              className={`io-tab ${activePanel === 'output' ? 'active' : ''}`}
+              onClick={() => setActivePanel('output')}
+            >
+              Output
+              {stats && (
+                <span className={`tab-badge ${isErrorStatus(stats.status) ? 'error' : 'success'}`}>
+                  {statusLabel(stats.status)}
+                </span>
+              )}
+            </button>
           </div>
 
-          <div className="io-section output-section">
-            <div className="panel-header">
-              STDOUT (Output)
-              {stats.status && (
-                <div className="metrics">
-                  <span className={stats.status === "Error" || stats.status === "Net Error" ? "metric-error" : "metric-success"}>
-                    {stats.status}
+          {activePanel === 'input' ? (
+            <div className="io-section">
+              <textarea
+                className="custom-input"
+                placeholder="Standard input (stdin) — one value per line or space-separated"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                spellCheck={false}
+              />
+            </div>
+          ) : (
+            <div className="io-section">
+              {stats && (
+                <div className="result-metrics">
+                  <span className={isErrorStatus(stats.status) ? 'metric-error' : 'metric-success'}>
+                    {statusLabel(stats.status)}
                   </span>
-                  <span>⏱ {stats.time}</span>
-                  <span>💾 {stats.memory}</span>
+                  {stats.compileTimeMs > 0 && (
+                    <span>Compile: {formatMs(stats.compileTimeMs)}</span>
+                  )}
+                  <span>Run: {formatMs(stats.runTimeMs)}</span>
+                  <span>Memory: {formatMemory(stats.memoryKb)}</span>
+                  <span>Total: {formatMs(stats.totalTimeMs)}</span>
+                  {stats.exitCode != null && stats.exitCode !== 0 && (
+                    <span>Exit: {stats.exitCode}</span>
+                  )}
                 </div>
               )}
+              <textarea
+                readOnly
+                className={`output-terminal ${stats && isErrorStatus(stats.status) ? 'error' : ''}`}
+                value={isLoading ? 'Compiling and running…' : (output || '> Ready. Press Run or Ctrl+Enter.')}
+                spellCheck={false}
+              />
             </div>
-            <textarea 
-              readOnly
-              className={`output-terminal ${stats.status === "Error" ? "error" : ""}`}
-              value={output}
-              placeholder="> Ready to execute."
-            />
-          </div>
+          )}
         </div>
       </div>
+
+      <footer className="status-bar">
+        <span>Ln {cursor.line}, Col {cursor.col}</span>
+        <span>{LANGUAGE_LABELS[language]}</span>
+        <span>UTF-8</span>
+        <span>Spaces: 4</span>
+        {stats && <span>Network: {formatMs(stats.clientRoundTripMs)}</span>}
+      </footer>
     </div>
   );
 }

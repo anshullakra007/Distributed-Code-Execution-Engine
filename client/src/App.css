@@ -77,7 +77,7 @@ body, html, #root {
 .run-btn:hover { opacity: 0.9; }
 .run-btn:disabled { background: #777; cursor: wait; }
 
-.workspace { flex: 1; display: flex; overflow: hidden; height: 100%; }
+.workspace { flex: 1; display: flex; overflow: hidden; min-height: 0; }
 
 .editor-panel {
   flex: 2; border-right: 1px solid var(--border);
@@ -98,7 +98,41 @@ body, html, #root {
 .icon-btn:hover { background: var(--border); color: var(--text); }
 
 .io-panel {
-  flex: 1; display: flex; flex-direction: column; background: var(--bg-main); min-width: 0;
+  flex: 1; display: flex; flex-direction: column; background: var(--bg-main); min-width: 280px;
+}
+
+.io-tabs {
+  display: flex; gap: 0; background: var(--bg-darker); border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.io-tab {
+  background: transparent; border: none; color: var(--text-muted);
+  padding: 8px 16px; font-size: 0.75rem; font-weight: 600; cursor: pointer;
+  border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 8px;
+}
+.io-tab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+.io-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+.tab-badge {
+  font-size: 0.65rem; padding: 1px 6px; border-radius: 3px; font-weight: 700;
+}
+.tab-badge.success { background: rgba(40,167,69,0.15); color: var(--success); }
+.tab-badge.error { background: rgba(255,107,107,0.15); color: var(--danger); }
+
+.result-metrics {
+  display: flex; flex-wrap: wrap; gap: 10px; padding: 8px 12px;
+  font-size: 0.7rem; font-family: 'JetBrains Mono', monospace;
+  background: var(--bg-darker); border-bottom: 1px solid var(--border);
+  color: var(--text-muted); flex-shrink: 0;
+}
+
+.status-bar {
+  height: 22px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 12px; font-size: 0.7rem;
+  background: var(--accent); color: #fff;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 .io-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }

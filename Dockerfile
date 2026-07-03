@@ -44,10 +44,11 @@ RUN ./mvnw clean package -DskipTests
 FROM eclipse-temurin:21-jdk-jammy
 WORKDIR /app
 
-# 🟢 CRITICAL: Install C++ (g++) and Python inside the production container
+# 🟢 CRITICAL: Install C++ (g++), Python, and GNU time for real memory metrics
 RUN apt-get update && apt-get install -y \
     g++ \
     python3 \
+    time \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the unified JAR from the backend-builder
