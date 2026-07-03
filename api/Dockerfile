@@ -1,10 +1,9 @@
 # Use a lightweight Java image
 FROM openjdk:17-jdk-slim
 
-# 🟢 CRITICAL: Install C++ (g++) and Python inside the backend container
+# 🟢 CRITICAL: Install Docker CLI so the backend can spawn isolated containers
 RUN apt-get update && apt-get install -y \
-    g++ \
-    python3 \
+    docker.io \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
