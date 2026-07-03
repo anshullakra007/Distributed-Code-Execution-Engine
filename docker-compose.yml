@@ -9,6 +9,10 @@ services:
       - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - cpp-sandbox
+      - java-sandbox
+      - python-sandbox
 
   # 2. Your Frontend Service (Optional, good for completeness)
   client:
@@ -17,3 +21,22 @@ services:
       - "3000:3000"
     depends_on:
       - api
+
+  # 3. Pre-Warmed Sandbox Containers (network_mode: none for security)
+  cpp-sandbox:
+    image: gcc:latest
+    container_name: cpp-sandbox
+    command: tail -f /dev/null
+    network_mode: none
+
+  java-sandbox:
+    image: openjdk:17-jdk-slim
+    container_name: java-sandbox
+    command: tail -f /dev/null
+    network_mode: none
+
+  python-sandbox:
+    image: python:3.10-slim
+    container_name: python-sandbox
+    command: tail -f /dev/null
+    network_mode: none

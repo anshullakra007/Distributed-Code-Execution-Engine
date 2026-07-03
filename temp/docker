@@ -1,0 +1,6 @@
+#!/bin/sh
+if [ "$1" = "exec" ] || [ "$1" = "run" ]; then
+  sleep 0.1
+  echo "Benchmark Test Output"
+fi
+
