@@ -22,16 +22,16 @@ public class DockerSandboxService {
             switch (language) {
                 case "cpp":
                     sourceFile = new File(tempDir.toFile(), "Solution.cpp");
-                    // Compile and Run directly (Native Speed) with a 5 second timeout to prevent infinite loops
-                    runCommand = "g++ -o solution Solution.cpp && timeout 5 ./solution < input.txt";
+                    // Compile and Run directly (Native Speed)
+                    runCommand = "g++ -o solution Solution.cpp && ./solution < input.txt";
                     break;
                 case "java":
                     sourceFile = new File(tempDir.toFile(), "Main.java");
-                    runCommand = "javac Main.java && timeout 5 java Main < input.txt";
+                    runCommand = "javac Main.java && java Main < input.txt";
                     break;
                 case "python":
                     sourceFile = new File(tempDir.toFile(), "script.py");
-                    runCommand = "timeout 5 python3 script.py < input.txt";
+                    runCommand = "python3 script.py < input.txt";
                     break;
                 default:
                     return "Error: Unsupported language";
