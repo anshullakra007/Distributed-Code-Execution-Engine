@@ -2,8 +2,8 @@ package com.codeengine.api;
 
 import org.springframework.stereotype.Service;
 import java.io.*;
-import java.util.Base64;
-import java.util.UUID;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -11,79 +11,75 @@ public class DockerSandboxService {
 
     public String executeCode(String language, String code, String input) {
         try {
-            String containerName;
-            String filename;
-            String compileAndRunCmd;
+            // 1. Create a unique temporary folder for this request
+            Path tempDir = Files.createTempDirectory("native-run-");
+            File sourceFile;
+            File inputFile = new File(tempDir.toFile(), "input.txt");
+            File outputFile = new File(tempDir.toFile(), "output.txt");
+            String runCommand;
 
-            // 1. Configure container name and commands based on language
+            // 2. Configure command based on language
             switch (language) {
                 case "cpp":
-                    containerName = "cpp-sandbox";
-                    filename = "Solution.cpp";
-                    compileAndRunCmd = "g++ -O2 -o solution Solution.cpp && ./solution";
+                    sourceFile = new File(tempDir.toFile(), "Solution.cpp");
+                    // Compile and Run directly (Native Speed) with a 5 second timeout to prevent infinite loops
+                    runCommand = "g++ -o solution Solution.cpp && timeout 5 ./solution < input.txt";
                     break;
                 case "java":
-                    containerName = "java-sandbox";
-                    filename = "Main.java";
-                    compileAndRunCmd = "javac Main.java && java Main";
+                    sourceFile = new File(tempDir.toFile(), "Main.java");
+                    runCommand = "javac Main.java && timeout 5 java Main < input.txt";
                     break;
                 case "python":
-                    containerName = "python-sandbox";
-                    filename = "script.py";
-                    compileAndRunCmd = "python3 script.py";
+                    sourceFile = new File(tempDir.toFile(), "script.py");
+                    runCommand = "timeout 5 python3 script.py < input.txt";
                     break;
                 default:
                     return "Error: Unsupported language";
             }
 
-            // 2. Generate a unique ID to isolate this execution within the shared container
-            String requestId = UUID.randomUUID().toString();
-            String workDir = "/tmp/sandbox_" + requestId;
+            // 3. Write Code and Input to disk
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(sourceFile))) {
+                writer.write(code);
+            }
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(inputFile))) {
+                writer.write(input == null ? "" : input);
+            }
 
-            // 3. Base64 encode the code to safely pass it
-            String b64Code = Base64.getEncoder().encodeToString(code.getBytes("UTF-8"));
+            // 4. Run the command natively (NO Docker)
+            ProcessBuilder pb = new ProcessBuilder("sh", "-c", runCommand);
+            pb.directory(tempDir.toFile()); // Run inside the temp folder
+            pb.redirectErrorStream(true);   // Merge error output with standard output
             
-            // 4. Create isolated directory, run code, and immediately clean up regardless of success
-            String script = "mkdir -p " + workDir + " && cd " + workDir + " && " +
-                            "echo \"$CODE\" | base64 -d > " + filename + " && " + 
-                            compileAndRunCmd + " ; exit_code=$? ; " +
-                            "cd / && rm -rf " + workDir + " ; exit $exit_code";
-
-            // 5. Use docker exec for millisecond-latency execution
-            ProcessBuilder pb = new ProcessBuilder(
-                "docker", "exec", "-i",
-                "-e", "CODE=" + b64Code,
-                containerName, "sh", "-c", script
-            );
-            pb.redirectErrorStream(true); // Merge error output with standard output
+            // CRITICAL FIX: Redirect output to a file to prevent pipe buffer deadlock!
+            pb.redirectOutput(outputFile);
 
             long startTime = System.currentTimeMillis();
             Process process = pb.start();
 
-            // 6. Pass the input to the container's stdin
-            try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream(), "UTF-8"))) {
-                if (input != null && !input.isEmpty()) {
-                    writer.write(input);
-                }
-            }
-
-            // 7. Set Timeout
-            boolean finished = process.waitFor(10, TimeUnit.SECONDS);
+            // 5. Set Timeout (8 seconds for compilation + execution)
+            boolean finished = process.waitFor(8, TimeUnit.SECONDS);
 
             if (!finished) {
                 process.destroyForcibly();
-                // Ensure the lingering directory is cleaned up asynchronously
-                new ProcessBuilder("docker", "exec", containerName, "sh", "-c", "rm -rf " + workDir).start();
                 return "Error: Time Limit Exceeded";
             }
 
-            // 8. Read Output
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), "UTF-8"));
+            // 6. Read Output from the file
             StringBuilder output = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
+            if (outputFile.exists()) {
+                try (BufferedReader reader = new BufferedReader(new FileReader(outputFile))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        output.append(line).append("\n");
+                    }
+                }
             }
+
+            // 7. Cleanup
+            Files.walk(tempDir)
+                .map(Path::toFile)
+                .sorted((o1, o2) -> -o1.compareTo(o2))
+                .forEach(File::delete);
 
             return output.toString().trim();
 
