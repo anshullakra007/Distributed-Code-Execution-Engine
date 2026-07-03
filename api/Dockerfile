@@ -1,7 +1,7 @@
-# Use a lightweight Java image
-FROM openjdk:17-jdk-slim
+# Use a base image with Java 24 (Matches current Spring Boot)
+FROM eclipse-temurin:21-jdk-jammy
 
-# 🟢 CRITICAL: Install C++ (g++) and Python inside the backend container for native execution
+# 🟢 CRITICAL: Install C++ (g++) and Python inside the backend container
 RUN apt-get update && apt-get install -y \
     g++ \
     python3 \
@@ -10,11 +10,11 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy the built jar
-COPY target/*.jar app.jar
+# Copy project files
+COPY . .
 
-# Expose port
-EXPOSE 8080
+# Build the application (using -DskipTests to make it faster)
+RUN chmod +x mvnw && ./mvnw clean package -DskipTests
 
-# Run the app
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run the application
+ENTRYPOINT ["java", "-jar", "target/api-0.0.1-SNAPSHOT.jar"]
