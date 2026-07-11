@@ -74,7 +74,10 @@ function isErrorStatus(status) {
 
 function App() {
   const [language, setLanguage] = useState(localStorage.getItem('language') || 'cpp');
-  const [code, setCode] = useState(localStorage.getItem('savedCode') || '');
+  const [code, setCode] = useState(() => {
+    const lang = localStorage.getItem('language') || 'cpp';
+    return localStorage.getItem(`savedCode_${lang}`) || BOILERPLATES[lang];
+  });
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'vs-dark');
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
@@ -87,13 +90,7 @@ function App() {
   const editorRef = useRef(null);
 
   useEffect(() => {
-    if (!localStorage.getItem('savedCode')) {
-      setCode(BOILERPLATES[language]);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('savedCode', code);
+    localStorage.setItem(`savedCode_${language}`, code);
     localStorage.setItem('language', language);
     localStorage.setItem('fontSize', fontSize);
     localStorage.setItem('theme', theme);
@@ -154,7 +151,7 @@ function App() {
   const handleLanguageChange = (e) => {
     const newLang = e.target.value;
     setLanguage(newLang);
-    setCode(BOILERPLATES[newLang]);
+    setCode(localStorage.getItem(`savedCode_${newLang}`) || BOILERPLATES[newLang]);
     setStats(null);
     setOutput('');
   };

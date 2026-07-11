@@ -1,78 +1,58 @@
-# ⚡ Distributed Code Execution Engine
+# CodeEngine 🚀
 
-![Java](https://img.shields.io/badge/Java-21-orange)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.2-green)
-![React](https://img.shields.io/badge/React-18-blue)
-![Docker](https://img.shields.io/badge/Docker-Enabled-blue)
-![Live](https://img.shields.io/badge/Status-Live_Deployed-success)
+A high-performance, distributed code execution engine that securely compiles and runs untrusted C++, Java, and Python code in isolated Docker environments.
 
-A high-performance, remote code execution platform capable of compiling and running C++, Java, Python, and JavaScript code in real-time. Built with a **React** frontend and a robust **Spring Boot** backend, containerized with **Docker** for consistent deployment.
+## 🏗 System Architecture
 
-🚀 **Live Demo:** [Click Here to Open App](https://distributed-code-execution-engine.vercel.app/)
+```mermaid
+graph TD
+    Client[React Frontend] -->|HTTP POST JSON| API[Spring Boot REST API]
+    API --> Controller[CodeController]
+    Controller -->|CompletableFuture Async| ThreadPool[Bounded ThreadPoolExecutor]
+    
+    subgraph "Docker Sandbox Core"
+        ThreadPool --> Service[DockerSandboxService]
+        Service --> Pool[Pre-warmed Container Pool]
+        
+        Pool --> Cpp[C++ GCC Container]
+        Pool --> Java[Java OpenJDK Container]
+        Pool --> Python[Python 3 Container]
+        
+        Cpp -.->|docker exec via stdin| CompileRun[Compile & Run]
+        Java -.->|docker exec via stdin| CompileRun
+        Python -.->|docker exec via stdin| CompileRun
+    end
+    
+    CompileRun -->|Time/Memory Tracking| Result[ExecutionResult]
+    Result --> API
+    API -->|HTTP 200/408| Client
+```
 
----
+## 🛠 Tech Stack
+- **Frontend:** React, Vite, Monaco Editor, TailwindCSS
+- **Backend:** Java 21, Spring Boot, docker-java API
+- **Infrastructure:** Docker, Docker Compose
+- **Performance Tooling:** GNU `time` for memory profiling, Async Task Queues
 
-## 🌟 Key Features
+## ⚡ Quick Start
 
-* **Multi-Language Support:** Compile and execute **C++ (GCC)**, **Java (JDK 21)**, **Python 3**, and **JavaScript (Node)**.
-* **Professional IDE Interface:** Integrated **Monaco Editor** (VS Code's engine) for a premium coding experience.
-* **Secure Execution:** Code is executed in a controlled environment using isolated process management.
-* **Real-time Output:** Captures Standard Output (stdout) and Standard Error (stderr) instantly.
-* **Responsive UI:** Full-screen, dark-mode interface optimized for Desktop, Tablet, and Mobile.
+### 1. Requirements
+- Docker and Docker Compose installed
+- Maven & Java 21
 
----
-
-## 🏗️ Architecture & Tech Stack
-
-This project follows a **Client-Server Architecture**:
-
-### **Frontend (Client)**
-* **Framework:** React.js (Vite)
-* **Editor:** Monaco Editor (@monaco-editor/react)
-* **Hosting:** Vercel (Edge Network)
-* **Styling:** CSS3 (VS Code Dark Theme)
-
-### **Backend (API)**
-* **Framework:** Spring Boot (Java 21)
-* **Execution Engine:** `ProcessBuilder` API for spawning isolated compiler processes.
-* **Containerization:** Docker (Eclipse Temurin 21 Image)
-* **Hosting:** Render Cloud
-
----
-
-## 🛠️ How It Works (System Design)
-
-1.  **User Submission:** The user writes code in the browser. The React frontend sends a JSON payload (`language`, `code`, `input`) to the backend.
-2.  **Request Handling:** The Spring Boot controller receives the request and forwards it to the `SandboxService`.
-3.  **Process Isolation:**
-    * The service writes the code to a temporary file.
-    * It identifies the correct compiler (`g++`, `javac`, `python3`) based on the language.
-    * It spawns a **Process** to compile and run the code.
-    * Input (stdin) is piped into the process, and Output (stdout/stderr) is captured.
-4.  **Response:** The execution result is sent back to the client and displayed in the terminal.
-
----
-
-## 📊 Performance Benchmark
-
-We conducted an exhaustive performance test of the code execution engine simulating 20 concurrent users with 100 requests per language. 
-* **Python**: 130.29 requests/sec (Avg Latency: ~148ms)
-* **C++**: 5.35 requests/sec (Avg Latency: ~3.5s)
-* **Java**: 8.02 requests/sec (Avg Latency: ~2.4s)
-
-Read the full deep-dive analysis, bottleneck identification, and methodology in the [BENCHMARK_REPORT.md](./BENCHMARK_REPORT.md).
-
----
-
-## 🚀 Running Locally
-
-### Prerequisites
-* Java 21 SDK
-* Node.js (v18+)
-* Docker (Optional, for container run)
-* G++ (MinGW or Linux GCC) and Python 3 installed.
-
-### 1. Clone the Repository
+### 2. Start the Stack
+Bring up the frontend and backend simultaneously using Docker Compose:
 ```bash
-git clone [https://github.com/anshullakra007/Distributed-Code-Execution-Engine.git](https://github.com/anshullakra007/Distributed-Code-Execution-Engine.git)
-cd Distributed-Code-Execution-Engine
+docker-compose up -d --build
+```
+
+*(Note: The `app` container mounts `/var/run/docker.sock` to seamlessly manage the pre-warmed sandbox containers on your host machine).*
+
+### 3. Usage
+Navigate to `http://localhost:8080` (or your mapped frontend port) to access the Code Editor, select your language, and run code instantly!
+
+### 4. Running Benchmarks
+To stress-test the async queue and warm pool performance:
+```bash
+python3 benchmark.py -c 20 -n 100 --all
+```
