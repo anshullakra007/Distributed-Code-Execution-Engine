@@ -12,10 +12,10 @@ import java.util.concurrent.Executor;
 @CrossOrigin(origins = "*")
 public class CodeController {
 
-    private final DockerSandboxService sandboxService;
+    private final NativeSandboxService sandboxService;
     private final Executor executor;
 
-    public CodeController(DockerSandboxService sandboxService, @Qualifier("sandboxExecutor") Executor executor) {
+    public CodeController(NativeSandboxService sandboxService, @Qualifier("sandboxExecutor") Executor executor) {
         this.sandboxService = sandboxService;
         this.executor = executor;
     }
