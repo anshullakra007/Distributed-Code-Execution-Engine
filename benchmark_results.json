@@ -1,0 +1,44 @@
+[
+  {
+    "language": "python",
+    "concurrency": 10,
+    "total_requests": 50,
+    "total_time_s": 0.3827238082885742,
+    "successful": 50,
+    "failed": 0,
+    "requests_per_sec": 130.64251273936932,
+    "min_latency_ms": 41.27383232116699,
+    "max_latency_ms": 112.48612403869629,
+    "mean_latency_ms": 70.4767370223999,
+    "p95_latency_ms": 111.75023317337036,
+    "p99_latency_ms": 112.61404752731323
+  },
+  {
+    "language": "cpp",
+    "concurrency": 10,
+    "total_requests": 50,
+    "total_time_s": 11.675702810287476,
+    "successful": 50,
+    "failed": 0,
+    "requests_per_sec": 4.2823974549904555,
+    "min_latency_ms": 1707.0016860961914,
+    "max_latency_ms": 3490.473985671997,
+    "mean_latency_ms": 2188.4885120391846,
+    "p95_latency_ms": 3194.244933128357,
+    "p99_latency_ms": 3555.326054096222
+  },
+  {
+    "language": "java",
+    "concurrency": 10,
+    "total_requests": 50,
+    "total_time_s": 6.969296932220459,
+    "successful": 50,
+    "failed": 0,
+    "requests_per_sec": 7.174324825914643,
+    "min_latency_ms": 1151.4637470245361,
+    "max_latency_ms": 1744.103193283081,
+    "mean_latency_ms": 1354.2326021194458,
+    "p95_latency_ms": 1528.8321137428284,
+    "p99_latency_ms": 1834.0123772621155
+  }
+]
