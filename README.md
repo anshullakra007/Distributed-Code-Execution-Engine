@@ -55,10 +55,10 @@ This project follows a **Client-Server Architecture**:
 
 ## 📊 Performance Benchmark
 
-We conducted an exhaustive performance test of the code execution engine simulating 10 concurrent users. 
-* **Python**: 130+ requests/sec (Avg Latency: ~70ms)
-* **C++**: 4.2 requests/sec (Avg Latency: ~2.1s)
-* **Java**: 7.1 requests/sec (Avg Latency: ~1.3s)
+We conducted an exhaustive performance test of the code execution engine simulating 20 concurrent users with 100 requests per language. 
+* **Python**: 130.29 requests/sec (Avg Latency: ~148ms)
+* **C++**: 5.35 requests/sec (Avg Latency: ~3.5s)
+* **Java**: 8.02 requests/sec (Avg Latency: ~2.4s)
 
 Read the full deep-dive analysis, bottleneck identification, and methodology in the [BENCHMARK_REPORT.md](./BENCHMARK_REPORT.md).
 
