@@ -34,6 +34,15 @@ graph TD
 - **Infrastructure:** Docker, Docker Compose
 - **Performance Tooling:** GNU `time` for memory profiling, Async Task Queues
 
+## 🛡 Security & Sandboxing Architecture
+
+Executing untrusted user code natively is a severe Remote Code Execution (RCE) vulnerability. This engine mitigates RCE and ensures 0% resource leakage through a highly restrictive, enterprise-grade Docker sandboxing model.
+
+- **Pre-warmed Container Pool:** The API orchestrates a fleet of static, "zombie" Docker containers (`openjdk`, `g++`, `python`). Code is injected and executed on-the-fly via `docker exec`. This avoids native execution on the host machine while bypassing slow Docker cold-starts.
+- **Strict Resource Limits:** Every container is strictly bounded using `HostConfig.withMemory(256MB)` to prevent memory exhaustion or malicious array allocations from triggering the host OOM killer.
+- **Network Blackholing:** Outbound container network access is entirely disabled (`NetworkMode: "none"`). This completely neutralizes Server-Side Request Forgery (SSRF) and prevents the sandbox from being used in DDoS attacks.
+- **Natural Backpressure & Thread Isolation:** If massive concurrent traffic hits the API, the unbounded creation of threads is blocked by our custom `ThreadPoolTaskExecutor` (bounded queue + `CallerRunsPolicy`). This acts as an organic shield against CPU thrashing and container leaks.
+
 ## ⚡ Quick Start
 
 ### 1. Requirements
