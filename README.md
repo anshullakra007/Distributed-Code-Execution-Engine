@@ -5,7 +5,7 @@ A high-performance, distributed code execution engine that securely compiles and
 > **[Watch the 2-Minute Architecture & Performance Demo](https://loom.com/)**  
 > *(Achieving 130+ req/sec throughput with 0% CPU starvation using a Bounded Async Queue and Pre-warmed Container Pool).*
 
-![Demo Placeholder](https://via.placeholder.com/800x400.png?text=Record+your+Loom+Video+GIF+and+place+it+here)
+![CodeEngine Demo](./demo.gif)
 
 ## 🏗 System Architecture
 
