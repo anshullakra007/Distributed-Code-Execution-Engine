@@ -192,6 +192,7 @@ public class DockerSandboxService {
         long elapsedMs = elapsedMs(start);
         
         if (!finished) {
+            process.descendants().forEach(ProcessHandle::destroyForcibly);
             process.destroyForcibly();
             stdoutGobbler.join();
             stderrGobbler.join();
