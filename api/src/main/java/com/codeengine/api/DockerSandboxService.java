@@ -12,6 +12,8 @@ import java.util.regex.Pattern;
 import java.nio.charset.StandardCharsets;
 import java.io.InputStream;
 import java.io.ByteArrayOutputStream;
+import javax.tools.JavaCompiler;
+import javax.tools.ToolProvider;
 
 @Service
 public class DockerSandboxService {
@@ -46,28 +48,51 @@ public class DockerSandboxService {
             ExecutionResult result = new ExecutionResult();
             long compileTimeMs = 0;
 
-            String[] compileCmd = getCompileCommand(language, workDir.getAbsolutePath());
-            if (compileCmd != null) {
-                ExecResult compile = runProcess(compileCmd, workDir, COMPILE_TIMEOUT_SEC);
-                compileTimeMs = compile.elapsedMs;
-
-                if (!compile.finished) {
-                    result.setStatus(ExecutionResult.Status.TIME_LIMIT_EXCEEDED);
-                    result.setError("Compilation timed out.");
+            if (language.equals("java")) {
+                JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+                if (compiler == null) {
+                    return ExecutionResult.error("JavaCompiler is not available in this environment.");
+                }
+                long compStart = System.nanoTime();
+                
+                // Redirect compiler output to capture errors
+                ByteArrayOutputStream errStream = new ByteArrayOutputStream();
+                int compResult = compiler.run(null, null, errStream, workDir.getAbsolutePath() + "/Main.java");
+                
+                compileTimeMs = elapsedMs(compStart);
+                if (compResult != 0) {
+                    result.setStatus(ExecutionResult.Status.COMPILATION_ERROR);
+                    result.setError(trimToEmpty(errStream.toString(StandardCharsets.UTF_8)));
                     result.setCompileTimeMs(compileTimeMs);
+                    result.setExitCode(compResult);
                     result.setTotalTimeMs(elapsedMs(totalStart));
                     cleanupTask(workDir);
                     return result;
                 }
+            } else {
+                String[] compileCmd = getCompileCommand(language, workDir.getAbsolutePath());
+                if (compileCmd != null) {
+                    ExecResult compile = runProcess(compileCmd, workDir, COMPILE_TIMEOUT_SEC);
+                    compileTimeMs = compile.elapsedMs;
 
-                if (compile.exitCode != 0) {
-                    result.setStatus(ExecutionResult.Status.COMPILATION_ERROR);
-                    result.setError(trimToEmpty(compile.error.isEmpty() ? compile.output : compile.error));
-                    result.setCompileTimeMs(compileTimeMs);
-                    result.setExitCode(compile.exitCode);
-                    result.setTotalTimeMs(elapsedMs(totalStart));
-                    cleanupTask(workDir);
-                    return result;
+                    if (!compile.finished) {
+                        result.setStatus(ExecutionResult.Status.TIME_LIMIT_EXCEEDED);
+                        result.setError("Compilation timed out.");
+                        result.setCompileTimeMs(compileTimeMs);
+                        result.setTotalTimeMs(elapsedMs(totalStart));
+                        cleanupTask(workDir);
+                        return result;
+                    }
+
+                    if (compile.exitCode != 0) {
+                        result.setStatus(ExecutionResult.Status.COMPILATION_ERROR);
+                        result.setError(trimToEmpty(compile.error.isEmpty() ? compile.output : compile.error));
+                        result.setCompileTimeMs(compileTimeMs);
+                        result.setExitCode(compile.exitCode);
+                        result.setTotalTimeMs(elapsedMs(totalStart));
+                        cleanupTask(workDir);
+                        return result;
+                    }
                 }
             }
 
@@ -132,8 +157,7 @@ public class DockerSandboxService {
 
     private String[] getCompileCommand(String language, String workDir) {
         return switch (language) {
-            case "cpp" -> new String[]{"sh", "-c", String.format("cd %s && g++ -std=c++17 -O2 -Wall -o solution Solution.cpp", workDir)};
-            case "java" -> new String[]{"sh", "-c", String.format("cd %s && javac Main.java", workDir)};
+            case "cpp" -> new String[]{"sh", "-c", String.format("cd %s && g++ -std=c++17 -O0 -Wall -o solution Solution.cpp", workDir)};
             default -> null;
         };
     }
