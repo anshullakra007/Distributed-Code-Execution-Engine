@@ -155,6 +155,9 @@ public class DockerSandboxService {
         long start = System.nanoTime();
         Process process = pb.start();
         
+        // Close stdin so the process receives EOF instead of hanging indefinitely
+        process.getOutputStream().close();
+        
         // Read output streams asynchronously to prevent blocking
         StreamGobbler stdoutGobbler = new StreamGobbler(process.getInputStream());
         StreamGobbler stderrGobbler = new StreamGobbler(process.getErrorStream());
