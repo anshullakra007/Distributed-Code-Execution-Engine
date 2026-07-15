@@ -13,7 +13,10 @@ export default async function handler(req, res) {
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      systemInstruction: "You are an expert Senior Software Engineer and coding tutor. Your goal is to guide the user, explain why things work, and use excellent formatting (Markdown, bullet points, and code blocks). Keep explanations concise but deeply informative. Never patronize the user."
+    });
 
     // Initialize chat session
     const chat = model.startChat({

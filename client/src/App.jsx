@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import './App.css';
 
 const BOILERPLATES = {
@@ -384,7 +388,33 @@ function App() {
             {chatMessages.map((msg, idx) => (
               <div key={idx} className={`chat-message ${msg.role === 'user' ? 'user' : 'ai'}`}>
                 <div className="chat-bubble">
-                  {msg.text.split('\\n').map((line, i) => <div key={i}>{line}</div>)}
+                  {msg.role === 'user' ? (
+                    msg.text.split('\n').map((line, i) => <div key={i}>{line}</div>)
+                  ) : (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        code({node, inline, className, children, ...props}) {
+                          const match = /language-(\w+)/.exec(className || '')
+                          return !inline && match ? (
+                            <SyntaxHighlighter
+                              {...props}
+                              children={String(children).replace(/\n$/, '')}
+                              style={vscDarkPlus}
+                              language={match[1]}
+                              PreTag="div"
+                            />
+                          ) : (
+                            <code {...props} className={className}>
+                              {children}
+                            </code>
+                          )
+                        }
+                      }}
+                    >
+                      {msg.text}
+                    </ReactMarkdown>
+                  )}
                 </div>
               </div>
             ))}
