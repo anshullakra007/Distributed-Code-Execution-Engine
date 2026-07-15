@@ -1,147 +1,54 @@
 package com.codeengine.api;
 
-import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.api.command.CreateContainerResponse;
-import com.github.dockerjava.api.command.ExecCreateCmdResponse;
-import com.github.dockerjava.api.model.HostConfig;
-import com.github.dockerjava.core.DefaultDockerClientConfig;
-import com.github.dockerjava.core.DockerClientImpl;
-import com.github.dockerjava.core.command.ExecStartResultCallback;
-import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
-import com.github.dockerjava.transport.DockerHttpClient;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Service;
-
-import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.nio.charset.StandardCharsets;
+import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 
 @Service
 public class DockerSandboxService {
 
     private static final int COMPILE_TIMEOUT_SEC = 10;
     private static final int RUN_TIMEOUT_SEC = 5;
-    private static final long MAX_MEMORY = 256 * 1024 * 1024L; // 256MB
-    
-    private final DockerClient dockerClient;
-    
-    private final Map<String, BlockingQueue<String>> warmPools = new ConcurrentHashMap<>();
-    private final Map<String, String> languageImages = Map.of(
-            "cpp", "gcc:latest",
-            "java", "openjdk:21-slim",
-            "python", "python:3-slim"
-    );
-
-    public DockerSandboxService() {
-        DefaultDockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
-        DockerHttpClient httpClient = new ApacheDockerHttpClient.Builder()
-                .dockerHost(config.getDockerHost())
-                .sslConfig(config.getSSLConfig())
-                .build();
-        this.dockerClient = DockerClientImpl.getInstance(config, httpClient);
-    }
-
-    @PostConstruct
-    public void initPools() {
-        int poolSize = Runtime.getRuntime().availableProcessors();
-        
-        for (Map.Entry<String, String> entry : languageImages.entrySet()) {
-            String lang = entry.getKey();
-            String image = entry.getValue();
-            BlockingQueue<String> queue = new ArrayBlockingQueue<>(poolSize);
-            
-            // Ensure image exists
-            try {
-                dockerClient.inspectImageCmd(image).exec();
-            } catch (Exception e) {
-                try {
-                    dockerClient.pullImageCmd(image).start().awaitCompletion();
-                } catch (InterruptedException ex) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-
-            for (int i = 0; i < poolSize; i++) {
-                HostConfig hostConfig = HostConfig.newHostConfig()
-                        .withMemory(MAX_MEMORY)
-                        .withNetworkMode("none")
-                        .withAutoRemove(true);
-
-                CreateContainerResponse container = dockerClient.createContainerCmd(image)
-                        .withHostConfig(hostConfig)
-                        .withCmd("tail", "-f", "/dev/null") // Keep alive
-                        .exec();
-                
-                String containerId = container.getId();
-                dockerClient.startContainerCmd(containerId).exec();
-                
-                // Ensure /usr/bin/time is installed for python and java if not present
-                if (!lang.equals("cpp")) {
-                    try {
-                        runInContainer(containerId, new String[]{"sh", "-c", "apt-get update && apt-get install -y time"}, 30);
-                    } catch (Exception ignored) {}
-                }
-                
-                queue.offer(containerId);
-            }
-            warmPools.put(lang, queue);
-        }
-    }
-
-    @PreDestroy
-    public void cleanupService() {
-        for (BlockingQueue<String> queue : warmPools.values()) {
-            for (String containerId : queue) {
-                try {
-                    dockerClient.killContainerCmd(containerId).exec();
-                } catch (Exception ignored) {}
-            }
-        }
-        try {
-            dockerClient.close();
-        } catch (IOException ignored) {}
-    }
 
     public ExecutionResult executeCode(String language, String code, String input) {
         long totalStart = System.nanoTime();
-        BlockingQueue<String> pool = warmPools.get(language);
         
-        if (pool == null) {
+        if (!language.equals("cpp") && !language.equals("java") && !language.equals("python")) {
             return ExecutionResult.error("Unsupported language: " + language);
         }
 
-        String containerId = null;
+        String taskId = UUID.randomUUID().toString();
+        File workDir = new File(System.getProperty("java.io.tmpdir"), "sandbox-" + taskId);
+        
         try {
-            // Wait for an available pre-warmed container (bounded wait)
-            containerId = pool.poll(30, TimeUnit.SECONDS);
-            if (containerId == null) {
-                return ExecutionResult.error("Server is too busy. Queue timeout.");
+            if (!workDir.mkdirs()) {
+                return ExecutionResult.error("Failed to create temporary sandbox directory");
             }
 
-            String taskId = UUID.randomUUID().toString();
-            String workDir = "/sandbox/" + taskId;
-
-            // Setup working directory and write files
-            String setupCmd = String.format("mkdir -p %s", workDir);
-            runInContainer(containerId, new String[]{"sh", "-c", setupCmd}, 2);
+            // Write source code
+            String fileName = getSourceFileName(language);
+            Files.writeString(workDir.toPath().resolve(fileName), code, StandardCharsets.UTF_8);
             
-            writeFileInContainer(containerId, workDir, getSourceFileName(language), code);
+            // Write input
             if (input != null && !input.isEmpty()) {
-                writeFileInContainer(containerId, workDir, "input.txt", input);
+                Files.writeString(workDir.toPath().resolve("input.txt"), input, StandardCharsets.UTF_8);
             }
 
             ExecutionResult result = new ExecutionResult();
             long compileTimeMs = 0;
 
-            String[] compileCmd = getCompileCommand(language, workDir);
+            String[] compileCmd = getCompileCommand(language, workDir.getAbsolutePath());
             if (compileCmd != null) {
-                ExecResult compile = runInContainer(containerId, compileCmd, COMPILE_TIMEOUT_SEC);
+                ExecResult compile = runProcess(compileCmd, workDir, COMPILE_TIMEOUT_SEC);
                 compileTimeMs = compile.elapsedMs;
 
                 if (!compile.finished) {
@@ -149,7 +56,7 @@ public class DockerSandboxService {
                     result.setError("Compilation timed out.");
                     result.setCompileTimeMs(compileTimeMs);
                     result.setTotalTimeMs(elapsedMs(totalStart));
-                    cleanupTask(containerId, workDir);
+                    cleanupTask(workDir);
                     return result;
                 }
 
@@ -159,13 +66,13 @@ public class DockerSandboxService {
                     result.setCompileTimeMs(compileTimeMs);
                     result.setExitCode(compile.exitCode);
                     result.setTotalTimeMs(elapsedMs(totalStart));
-                    cleanupTask(containerId, workDir);
+                    cleanupTask(workDir);
                     return result;
                 }
             }
 
-            String[] runCmd = getRunCommand(language, workDir, input != null && !input.isEmpty());
-            ExecResult run = runInContainer(containerId, runCmd, RUN_TIMEOUT_SEC);
+            String[] runCmd = getRunCommand(language, workDir.getAbsolutePath(), input != null && !input.isEmpty());
+            ExecResult run = runProcess(runCmd, workDir, RUN_TIMEOUT_SEC);
 
             result.setCompileTimeMs(compileTimeMs);
             result.setRunTimeMs(run.elapsedMs);
@@ -192,33 +99,26 @@ public class DockerSandboxService {
             }
 
             result.setTotalTimeMs(elapsedMs(totalStart));
-            cleanupTask(containerId, workDir);
             return result;
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return ExecutionResult.error("Execution interrupted");
         } catch (Exception e) {
             ExecutionResult result = ExecutionResult.error("Server error: " + e.getMessage());
             result.setTotalTimeMs(elapsedMs(totalStart));
             return result;
         } finally {
-            if (containerId != null) {
-                pool.offer(containerId);
-            }
+            cleanupTask(workDir);
         }
     }
 
-    private void writeFileInContainer(String containerId, String workDir, String fileName, String content) throws Exception {
-        String base64Content = java.util.Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
-        String cmd = String.format("echo '%s' | base64 -d > %s/%s", base64Content, workDir, fileName);
-        runInContainer(containerId, new String[]{"sh", "-c", cmd}, 5);
-    }
-
-    private void cleanupTask(String containerId, String workDir) {
-        try {
-            runInContainer(containerId, new String[]{"rm", "-rf", workDir}, 2);
-        } catch (Exception ignored) {}
+    private void cleanupTask(File workDir) {
+        if (workDir.exists()) {
+            try {
+                Files.walk(workDir.toPath())
+                     .sorted(java.util.Comparator.reverseOrder())
+                     .map(Path::toFile)
+                     .forEach(File::delete);
+            } catch (IOException ignored) {}
+        }
     }
 
     private String getSourceFileName(String language) {
@@ -248,28 +148,56 @@ public class DockerSandboxService {
         };
     }
 
-    private ExecResult runInContainer(String containerId, String[] cmd, int timeoutSec) throws Exception {
-        ExecCreateCmdResponse execCreateCmdResponse = dockerClient.execCreateCmd(containerId)
-                .withAttachStdout(true)
-                .withAttachStderr(true)
-                .withCmd(cmd)
-                .exec();
+    private ExecResult runProcess(String[] cmd, File workDir, int timeoutSec) throws Exception {
+        ProcessBuilder pb = new ProcessBuilder(cmd);
+        pb.directory(workDir);
+        
+        long start = System.nanoTime();
+        Process process = pb.start();
+        
+        // Read output streams asynchronously to prevent blocking
+        StreamGobbler stdoutGobbler = new StreamGobbler(process.getInputStream());
+        StreamGobbler stderrGobbler = new StreamGobbler(process.getErrorStream());
+        stdoutGobbler.start();
+        stderrGobbler.start();
+        
+        boolean finished = process.waitFor(timeoutSec, TimeUnit.SECONDS);
+        long elapsedMs = elapsedMs(start);
+        
+        if (!finished) {
+            process.destroyForcibly();
+            stdoutGobbler.join();
+            stderrGobbler.join();
+            return new ExecResult(false, -1, elapsedMs, stdoutGobbler.getOutput(), stderrGobbler.getOutput());
+        }
 
-        try (ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-             ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-             ExecStartResultCallback callback = new ExecStartResultCallback(stdout, stderr)) {
-             
-            long start = System.nanoTime();
-            dockerClient.execStartCmd(execCreateCmdResponse.getId()).exec(callback);
-            
-            boolean finished = callback.awaitCompletion(timeoutSec, TimeUnit.SECONDS);
-            long elapsedMs = elapsedMs(start);
-            if (!finished) {
-                return new ExecResult(false, -1, elapsedMs, stdout.toString(StandardCharsets.UTF_8), stderr.toString(StandardCharsets.UTF_8));
-            }
+        stdoutGobbler.join();
+        stderrGobbler.join();
+        
+        return new ExecResult(true, process.exitValue(), elapsedMs, stdoutGobbler.getOutput(), stderrGobbler.getOutput());
+    }
 
-            int exitCode = dockerClient.inspectExecCmd(execCreateCmdResponse.getId()).exec().getExitCodeLong().intValue();
-            return new ExecResult(true, exitCode, elapsedMs, stdout.toString(StandardCharsets.UTF_8), stderr.toString(StandardCharsets.UTF_8));
+    private static class StreamGobbler extends Thread {
+        private final InputStream is;
+        private final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        StreamGobbler(InputStream is) {
+            this.is = is;
+        }
+
+        @Override
+        public void run() {
+            try {
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = is.read(buffer)) != -1) {
+                    baos.write(buffer, 0, read);
+                }
+            } catch (IOException ignored) {}
+        }
+
+        public String getOutput() {
+            return baos.toString(StandardCharsets.UTF_8);
         }
     }
 
