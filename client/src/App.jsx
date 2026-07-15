@@ -86,6 +86,15 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [fontSize, setFontSize] = useState(parseInt(localStorage.getItem('fontSize'), 10) || 14);
   const [cursor, setCursor] = useState({ line: 1, col: 1 });
+  
+  // Chatbot State
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([
+    { role: 'model', text: "Hello! I'm CodeEngine AI. How can I help you today?" }
+  ]);
+  const [chatInputText, setChatInputText] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const chatMessagesEndRef = useRef(null);
 
   const editorRef = useRef(null);
 
@@ -148,6 +157,50 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleRun]);
 
+  // Scroll chat to bottom
+  useEffect(() => {
+    if (chatMessagesEndRef.current) {
+      chatMessagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, isChatOpen]);
+
+  const handleSendChatMessage = async () => {
+    if (!chatInputText.trim() || isChatLoading) return;
+
+    const userMessage = chatInputText.trim();
+    setChatInputText('');
+    
+    // Add user message to UI immediately
+    const updatedMessages = [...chatMessages, { role: 'user', text: userMessage }];
+    setChatMessages(updatedMessages);
+    setIsChatLoading(true);
+
+    try {
+      // Format history for Gemini API
+      const history = chatMessages.slice(1).map(msg => ({
+        role: msg.role === 'ai' || msg.role === 'model' ? 'model' : 'user',
+        parts: [{ text: msg.text }]
+      }));
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMessage, history })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setChatMessages([...updatedMessages, { role: 'model', text: data.text }]);
+      } else {
+        setChatMessages([...updatedMessages, { role: 'model', text: `Error: ${data.error || 'Failed to get response'}` }]);
+      }
+    } catch (error) {
+      setChatMessages([...updatedMessages, { role: 'model', text: `Network Error: ${error.message}` }]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
   const handleLanguageChange = (e) => {
     const newLang = e.target.value;
     setLanguage(newLang);
@@ -178,12 +231,16 @@ function App() {
     <div className={`app-container ${theme}`}>
       <header className="header">
         <div className="logo">
-          <span className="logo-icon">⚡</span>
-          Code Engine
+          <svg className="logo-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          CodeEngine
         </div>
         <div className="controls">
           <button className="icon-btn theme-btn" onClick={() => setTheme(t => t === 'vs-dark' ? 'light' : 'vs-dark')} title="Toggle Theme">
-            {theme === 'vs-dark' ? '☀️' : '🌙'}
+            {theme === 'vs-dark' ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            )}
           </button>
 
           <div className="zoom-controls">
@@ -198,19 +255,34 @@ function App() {
           </select>
 
           <button className="run-btn" onClick={handleRun} disabled={isLoading} title="Ctrl+Enter to Run">
-            {isLoading ? 'Running…' : '▶ Run'}
+            {isLoading ? (
+              <><svg className="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg> Running...</>
+            ) : (
+              <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run</>
+            )}
+          </button>
+          
+          <button className={`chat-toggle-btn ${isChatOpen ? 'active' : ''}`} onClick={() => setIsChatOpen(!isChatOpen)}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            Ask AI ✨
           </button>
         </div>
       </header>
 
-      <div className="workspace">
+      <div className={`workspace ${isChatOpen ? 'chat-open' : ''}`}>
         <div className="editor-panel">
           <div className="panel-header-row">
             <span>main.{language === 'cpp' ? 'cpp' : language === 'java' ? 'java' : 'py'}</span>
             <div className="editor-actions">
-              <button className="icon-btn" onClick={() => setCode(BOILERPLATES[language])}>↺ Reset</button>
-              <button className="icon-btn" onClick={handleDownload}>⬇ Save</button>
-              <button className="icon-btn" onClick={() => navigator.clipboard.writeText(code)}>📋 Copy</button>
+              <button className="icon-btn" onClick={() => setCode(BOILERPLATES[language])}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Reset
+              </button>
+              <button className="icon-btn" onClick={handleDownload}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Save
+              </button>
+              <button className="icon-btn" onClick={() => navigator.clipboard.writeText(code)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy
+              </button>
             </div>
           </div>
           <Editor
@@ -296,6 +368,56 @@ function App() {
             </div>
           )}
         </div>
+
+        {/* --- AI CHAT PANEL --- */}
+        <div className={`chat-panel ${isChatOpen ? '' : 'hidden'}`}>
+          <div className="chat-header">
+            <div className="chat-header-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              CodeEngine AI
+            </div>
+            <button className="chat-close-btn" onClick={() => setIsChatOpen(false)}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div className="chat-messages">
+            {chatMessages.map((msg, idx) => (
+              <div key={idx} className={`chat-message ${msg.role === 'user' ? 'user' : 'ai'}`}>
+                <div className="chat-bubble">
+                  {msg.text.split('\\n').map((line, i) => <div key={i}>{line}</div>)}
+                </div>
+              </div>
+            ))}
+            {isChatLoading && (
+              <div className="chat-message ai">
+                <div className="chat-bubble typing-indicator">
+                  <div className="typing-dot"></div>
+                  <div className="typing-dot"></div>
+                  <div className="typing-dot"></div>
+                </div>
+              </div>
+            )}
+            <div ref={chatMessagesEndRef} />
+          </div>
+          <div className="chat-input-container">
+            <textarea
+              className="chat-input"
+              placeholder="Ask me anything..."
+              value={chatInputText}
+              onChange={(e) => setChatInputText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendChatMessage();
+                }
+              }}
+            />
+            <button className="chat-send-btn" onClick={handleSendChatMessage} disabled={!chatInputText.trim() || isChatLoading}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+
       </div>
 
       <footer className="status-bar">
