@@ -196,7 +196,8 @@ function App() {
       if (response.ok) {
         setChatMessages([...updatedMessages, { role: 'model', text: data.text }]);
       } else {
-        setChatMessages([...updatedMessages, { role: 'model', text: `Error: ${data.error || 'Failed to get response'}` }]);
+        const errorMsg = data.details ? `${data.error || 'Failed to get response'}: ${data.details}` : (data.error || 'Failed to get response');
+        setChatMessages([...updatedMessages, { role: 'model', text: `Error: ${errorMsg}` }]);
       }
     } catch (error) {
       setChatMessages([...updatedMessages, { role: 'model', text: `Network Error: ${error.message}` }]);
