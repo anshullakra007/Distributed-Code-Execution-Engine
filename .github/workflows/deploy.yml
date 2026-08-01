@@ -4,14 +4,20 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   deploy-frontend:
     runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
       - uses: actions/checkout@v4
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
+      - name: Install Client Dependencies
+        run: npm --prefix client install
       - name: Pull Vercel Environment Information
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
       - name: Build Project Artifacts
@@ -24,7 +30,7 @@ jobs:
     steps:
       - name: Trigger Render Deploy
         run: |
-          curl -X POST \
+          curl -fSL -X POST \
             -H "Authorization: Bearer ${{ secrets.RENDER_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d '{"clearCache": "clear"}' \
