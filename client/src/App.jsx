@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import './App.css';
+import ArchitectureStory, { LandingStoryBanner } from './components/ArchitectureStory';
 
 const BOILERPLATES = {
   cpp: `#include <iostream>
@@ -90,6 +91,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [fontSize, setFontSize] = useState(parseInt(localStorage.getItem('fontSize'), 10) || 14);
   const [cursor, setCursor] = useState({ line: 1, col: 1 });
+  const [isStoryOpen, setIsStoryOpen] = useState(false);
   
   // Chatbot State
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -266,10 +268,15 @@ function App() {
               <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run</>
             )}
           </button>
-          
-
+          <button className="story-mode-btn" onClick={() => setIsStoryOpen(true)} title="Explore How CodeEngine Works in Real Time">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <span>How It Works</span>
+            <span className="story-badge-new">Story</span>
+          </button>
         </div>
       </header>
+
+      <LandingStoryBanner onOpenStory={() => setIsStoryOpen(true)} />
 
       <div className={`workspace ${isChatOpen ? 'chat-open' : ''}`}>
         <div className="editor-panel">
@@ -455,6 +462,12 @@ function App() {
         <span>Spaces: 4</span>
         {stats && <span>Network: {formatMs(stats.clientRoundTripMs)}</span>}
       </footer>
+
+      <ArchitectureStory
+        isOpen={isStoryOpen}
+        onClose={() => setIsStoryOpen(false)}
+        selectedLanguage={language}
+      />
     </div>
   );
 }

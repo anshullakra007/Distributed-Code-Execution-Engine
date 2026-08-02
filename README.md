@@ -5,7 +5,8 @@ A high-performance, distributed code execution engine that securely compiles and
 > **[Watch the 2-Minute Architecture & Performance Demo](https://loom.com/)**  
 > *(Achieving 130+ req/sec throughput with 0% CPU starvation using a Bounded Async Queue and Pre-warmed Container Pool).*
 
-🚀 **Live Server Address:** [https://code-engine-api-wicb.onrender.com](https://code-engine-api-wicb.onrender.com)
+🚀 **Live Server Address:** [https://code-engine-api-wicb.onrender.com](https://code-engine-api-wicb.onrender.com)  
+📖 **Interactive Story Mode:** Built-in interactive 5-Act real-time architecture walkthrough on the landing page!
 
 ![CodeEngine Demo](./demo.gif)
 
