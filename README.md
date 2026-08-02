@@ -5,8 +5,6 @@ A high-performance, distributed code execution engine that securely compiles and
 🚀 **Live Server & API:** [https://code-engine-api-wicb.onrender.com](https://code-engine-api-wicb.onrender.com)  
 📖 **Interactive Architecture Walkthrough:** Built-in real-time microVM & pipeline inspection in the editor header!
 
-![CodeEngine Demo](./demo.gif)
-
 ## 🏗 System Architecture
 
 ```mermaid
