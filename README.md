@@ -2,11 +2,11 @@
 
 A high-performance, distributed code execution engine that securely compiles and runs untrusted C++, Java, and Python code in isolated Docker environments.
 
-> **[Watch the 2-Minute Architecture & Performance Demo](https://loom.com/)**  
+> **[Watch the Architecture & Performance Demo](./demo.gif)**  
 > *(Achieving 130+ req/sec throughput with 0% CPU starvation using a Bounded Async Queue and Pre-warmed Container Pool).*
 
-🚀 **Live Server Address:** [https://code-engine-api-wicb.onrender.com](https://code-engine-api-wicb.onrender.com)  
-📖 **Interactive Story Mode:** Built-in interactive 5-Act real-time architecture walkthrough on the landing page!
+🚀 **Live Server & API:** [https://code-engine-api-wicb.onrender.com](https://code-engine-api-wicb.onrender.com)  
+📖 **Interactive Architecture Walkthrough:** Built-in real-time microVM & pipeline inspection in the editor header!
 
 ![CodeEngine Demo](./demo.gif)
 
@@ -37,7 +37,7 @@ graph TD
 ```
 
 ## 🛠 Tech Stack
-- **Frontend:** React, Vite, Monaco Editor, TailwindCSS
+- **Frontend:** React, Vite, Monaco Editor, Vanilla CSS (Obsidian & Zinc Design System)
 - **Backend:** Java 21, Spring Boot, docker-java API
 - **Infrastructure:** Docker, Docker Compose
 - **Performance Tooling:** GNU `time` for memory profiling, Async Task Queues
