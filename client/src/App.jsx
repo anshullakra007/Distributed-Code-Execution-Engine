@@ -1,11 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import './App.css';
-import ArchitectureStory, { LandingStoryBanner } from './components/ArchitectureStory';
+import ArchitectureStory from './components/ArchitectureStory';
 
 const BOILERPLATES = {
   cpp: `#include <iostream>
@@ -92,15 +88,7 @@ function App() {
   const [fontSize, setFontSize] = useState(parseInt(localStorage.getItem('fontSize'), 10) || 14);
   const [cursor, setCursor] = useState({ line: 1, col: 1 });
   const [isStoryOpen, setIsStoryOpen] = useState(false);
-  
-  // Chatbot State
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState([
-    { role: 'model', text: "Hello! I'm CodeEngine AI. How can I help you today?" }
-  ]);
-  const [chatInputText, setChatInputText] = useState('');
-  const [isChatLoading, setIsChatLoading] = useState(false);
-  const chatMessagesEndRef = useRef(null);
+  const [copied, setCopied] = useState(false);
 
   const editorRef = useRef(null);
 
@@ -127,7 +115,14 @@ function App() {
         body: JSON.stringify({ language, code, input })
       });
 
-      const result = await response.json();
+      const textResponse = await response.text();
+      let result;
+      try {
+        result = JSON.parse(textResponse);
+      } catch (e) {
+        throw new Error(`Server error (${response.status}): ${textResponse || 'Empty response from execution server'}`);
+      }
+
       const clientRoundTrip = Math.round(performance.now() - clientStart);
 
       const displayText = isErrorStatus(result.status)
@@ -145,7 +140,7 @@ function App() {
         clientRoundTripMs: clientRoundTrip
       });
     } catch (error) {
-      setOutput(`Network Error: ${error.message}`);
+      setOutput(`Error: ${error.message}`);
       setStats({ status: 'ERROR', clientRoundTripMs: Math.round(performance.now() - clientStart) });
     } finally {
       setIsLoading(false);
@@ -162,51 +157,6 @@ function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleRun]);
-
-  // Scroll chat to bottom
-  useEffect(() => {
-    if (chatMessagesEndRef.current) {
-      chatMessagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [chatMessages, isChatOpen]);
-
-  const handleSendChatMessage = async () => {
-    if (!chatInputText.trim() || isChatLoading) return;
-
-    const userMessage = chatInputText.trim();
-    setChatInputText('');
-    
-    // Add user message to UI immediately
-    const updatedMessages = [...chatMessages, { role: 'user', text: userMessage }];
-    setChatMessages(updatedMessages);
-    setIsChatLoading(true);
-
-    try {
-      // Format history for Gemini API
-      const history = chatMessages.slice(1).map(msg => ({
-        role: msg.role === 'ai' || msg.role === 'model' ? 'model' : 'user',
-        parts: [{ text: msg.text }]
-      }));
-
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage, history })
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        setChatMessages([...updatedMessages, { role: 'model', text: data.text }]);
-      } else {
-        const errorMsg = data.details ? `${data.error || 'Failed to get response'}: ${data.details}` : (data.error || 'Failed to get response');
-        setChatMessages([...updatedMessages, { role: 'model', text: `Error: ${errorMsg}` }]);
-      }
-    } catch (error) {
-      setChatMessages([...updatedMessages, { role: 'model', text: `Network Error: ${error.message}` }]);
-    } finally {
-      setIsChatLoading(false);
-    }
-  };
 
   const handleLanguageChange = (e) => {
     const newLang = e.target.value;
@@ -227,6 +177,12 @@ function App() {
     document.body.removeChild(element);
   };
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  };
+
   const handleEditorMount = (editor) => {
     editorRef.current = editor;
     editor.onDidChangeCursorPosition(({ position }) => {
@@ -238,59 +194,66 @@ function App() {
     <div className={`app-container ${theme}`}>
       <header className="header">
         <div className="logo">
-          <svg className="logo-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-          CodeEngine
+          <div className="logo-icon-wrapper">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          </div>
+          <span className="logo-title">CodeEngine</span>
         </div>
         <div className="controls">
-          <button className="icon-btn theme-btn" onClick={() => setTheme(t => t === 'vs-dark' ? 'light' : 'vs-dark')} title="Toggle Theme">
-            {theme === 'vs-dark' ? (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-            )}
-          </button>
-
-          <div className="zoom-controls">
-            <button onClick={() => setFontSize(s => Math.max(10, s - 1))} title="Decrease Font">A-</button>
-            <button onClick={() => setFontSize(s => Math.min(24, s + 1))} title="Increase Font">A+</button>
+          <div className="lang-select-wrapper">
+            <span className={`lang-dot ${language}`}></span>
+            <select value={language} onChange={handleLanguageChange} className="lang-select">
+              <option value="cpp">C++ (GCC 17)</option>
+              <option value="java">Java (JDK 21)</option>
+              <option value="python">Python 3.11</option>
+            </select>
+            <svg className="select-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
 
-          <select value={language} onChange={handleLanguageChange} className="lang-select">
-            <option value="cpp">C++ (GCC)</option>
-            <option value="java">Java (JDK 21)</option>
-            <option value="python">Python 3</option>
-          </select>
-
-          <button className="run-btn" onClick={handleRun} disabled={isLoading} title="Ctrl+Enter to Run">
+          <button className="run-btn" onClick={handleRun} disabled={isLoading} title="Run Code (⌘+Enter)">
             {isLoading ? (
-              <><svg className="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg> Running...</>
+              <><svg className="spinner" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg> <span>Running...</span></>
             ) : (
-              <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run</>
+              <><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> <span>Run</span></>
             )}
           </button>
-          <button className="story-mode-btn" onClick={() => setIsStoryOpen(true)} title="Explore How CodeEngine Works in Real Time">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-            <span>How It Works</span>
-            <span className="story-badge-new">Story</span>
+
+          <button className="story-mode-btn" onClick={() => setIsStoryOpen(true)} title="Inspect CodeEngine's Execution Pipeline">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <span>Architecture</span>
+          </button>
+
+          <button className="icon-btn theme-btn" onClick={() => setTheme(t => t === 'vs-dark' ? 'light' : 'vs-dark')} title="Toggle Theme">
+            {theme === 'vs-dark' ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            )}
           </button>
         </div>
       </header>
 
-      <LandingStoryBanner onOpenStory={() => setIsStoryOpen(true)} />
-
-      <div className={`workspace ${isChatOpen ? 'chat-open' : ''}`}>
+      <div className="workspace">
         <div className="editor-panel">
           <div className="panel-header-row">
-            <span>main.{language === 'cpp' ? 'cpp' : language === 'java' ? 'java' : 'py'}</span>
+            <div className="editor-tab active">
+              <span className={`lang-dot ${language}`}></span>
+              <span className="file-name">main.{language === 'cpp' ? 'cpp' : language === 'java' ? 'java' : 'py'}</span>
+              <span className="file-meta">UTF-8</span>
+            </div>
             <div className="editor-actions">
-              <button className="icon-btn" onClick={() => setCode(BOILERPLATES[language])}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Reset
+              <button className="icon-btn" onClick={() => setCode(BOILERPLATES[language])} title="Reset to Boilerplate">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Reset
               </button>
-              <button className="icon-btn" onClick={handleDownload}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Save
+              <button className="icon-btn" onClick={handleDownload} title="Download Source File">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Save
               </button>
-              <button className="icon-btn" onClick={() => navigator.clipboard.writeText(code)}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy
+              <button className="icon-btn copy-btn" onClick={handleCopy} title="Copy Code to Clipboard">
+                {copied ? (
+                  <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span className="copied-text">Copied</span></>
+                ) : (
+                  <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</>
+                )}
               </button>
             </div>
           </div>
@@ -325,15 +288,16 @@ function App() {
               className={`io-tab ${activePanel === 'input' ? 'active' : ''}`}
               onClick={() => setActivePanel('input')}
             >
-              Input
+              <span>Input</span>
             </button>
             <button
               className={`io-tab ${activePanel === 'output' ? 'active' : ''}`}
               onClick={() => setActivePanel('output')}
             >
-              Output
+              <span>Output</span>
               {stats && (
-                <span className={`tab-badge ${isErrorStatus(stats.status) ? 'error' : 'success'}`}>
+                <span className={`tab-status-pill ${isErrorStatus(stats.status) ? 'error' : 'success'}`}>
+                  <span className="status-dot"></span>
                   {statusLabel(stats.status)}
                 </span>
               )}
@@ -344,7 +308,7 @@ function App() {
             <div className="io-section">
               <textarea
                 className="custom-input"
-                placeholder="Standard input (stdin) — one value per line or space-separated"
+                placeholder="Enter custom input here..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 spellCheck={false}
@@ -354,113 +318,63 @@ function App() {
             <div className="io-section">
               {stats && (
                 <div className="result-metrics">
-                  <span className={isErrorStatus(stats.status) ? 'metric-error' : 'metric-success'}>
+                  <div className={`metric-badge status-badge ${isErrorStatus(stats.status) ? 'error' : 'success'}`}>
+                    <span className="status-dot"></span>
                     {statusLabel(stats.status)}
-                  </span>
+                  </div>
                   {stats.compileTimeMs > 0 && (
-                    <span>Compile: {formatMs(stats.compileTimeMs)}</span>
+                    <div className="metric-item">
+                      <span className="metric-label">Compile</span>
+                      <span className="metric-value">{formatMs(stats.compileTimeMs)}</span>
+                    </div>
                   )}
-                  <span>Run: {formatMs(stats.runTimeMs)}</span>
-                  <span>Memory: {formatMemory(stats.memoryKb)}</span>
-                  <span>Total: {formatMs(stats.totalTimeMs)}</span>
-                  {stats.exitCode != null && stats.exitCode !== 0 && (
-                    <span>Exit: {stats.exitCode}</span>
+                  <div className="metric-item">
+                    <span className="metric-label">Exec</span>
+                    <span className="metric-value">{formatMs(stats.runTimeMs)}</span>
+                  </div>
+                  <div className="metric-item">
+                    <span className="metric-label">Memory</span>
+                    <span className="metric-value">{formatMemory(stats.memoryKb)}</span>
+                  </div>
+                  <div className="metric-item">
+                    <span className="metric-label">Total</span>
+                    <span className="metric-value">{formatMs(stats.totalTimeMs)}</span>
+                  </div>
+                  {stats.exitCode != null && (
+                    <div className="metric-item">
+                      <span className="metric-label">Exit Code</span>
+                      <span className={`metric-value ${stats.exitCode === 0 ? 'success' : 'error'}`}>{stats.exitCode}</span>
+                    </div>
                   )}
                 </div>
               )}
               <textarea
                 readOnly
                 className={`output-terminal ${stats && isErrorStatus(stats.status) ? 'error' : ''}`}
-                value={isLoading ? 'Compiling and running…' : (output || '> Ready. Press Run or Ctrl+Enter.')}
+                value={isLoading ? 'Running...' : (output || 'Click Run to execute code...')}
                 spellCheck={false}
               />
             </div>
           )}
         </div>
 
-        {/* --- AI CHAT PANEL --- */}
-        <div className={`chat-panel ${isChatOpen ? '' : 'hidden'}`}>
-          <div className="chat-header">
-            <div className="chat-header-title">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              CodeEngine AI
-            </div>
-            <button className="chat-close-btn" onClick={() => setIsChatOpen(false)}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
-          <div className="chat-messages">
-            {chatMessages.map((msg, idx) => (
-              <div key={idx} className={`chat-message ${msg.role === 'user' ? 'user' : 'ai'}`}>
-                <div className="chat-bubble">
-                  {msg.role === 'user' ? (
-                    msg.text.split('\n').map((line, i) => <div key={i}>{line}</div>)
-                  ) : (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        code({node, inline, className, children, ...props}) {
-                          const match = /language-(\w+)/.exec(className || '')
-                          return !inline && match ? (
-                            <SyntaxHighlighter
-                              {...props}
-                              children={String(children).replace(/\n$/, '')}
-                              style={vscDarkPlus}
-                              language={match[1]}
-                              PreTag="div"
-                            />
-                          ) : (
-                            <code {...props} className={className}>
-                              {children}
-                            </code>
-                          )
-                        }
-                      }}
-                    >
-                      {msg.text}
-                    </ReactMarkdown>
-                  )}
-                </div>
-              </div>
-            ))}
-            {isChatLoading && (
-              <div className="chat-message ai">
-                <div className="chat-bubble typing-indicator">
-                  <div className="typing-dot"></div>
-                  <div className="typing-dot"></div>
-                  <div className="typing-dot"></div>
-                </div>
-              </div>
-            )}
-            <div ref={chatMessagesEndRef} />
-          </div>
-          <div className="chat-input-container">
-            <textarea
-              className="chat-input"
-              placeholder="Ask me anything..."
-              value={chatInputText}
-              onChange={(e) => setChatInputText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendChatMessage();
-                }
-              }}
-            />
-            <button className="chat-send-btn" onClick={handleSendChatMessage} disabled={!chatInputText.trim() || isChatLoading}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            </button>
-          </div>
-        </div>
-
       </div>
 
       <footer className="status-bar">
-        <span>Ln {cursor.line}, Col {cursor.col}</span>
-        <span>{LANGUAGE_LABELS[language]}</span>
-        <span>UTF-8</span>
-        <span>Spaces: 4</span>
-        {stats && <span>Network: {formatMs(stats.clientRoundTripMs)}</span>}
+        <div className="status-left">
+          <span className="status-item cluster-status">
+            <span className="status-dot online"></span>
+            <span>Sandbox Ready</span>
+          </span>
+          <span className="status-divider"></span>
+          <span className="status-item">Ln {cursor.line}, Col {cursor.col}</span>
+        </div>
+        <div className="status-right">
+          <span className="status-item">{LANGUAGE_LABELS[language]}</span>
+          <span className="status-divider"></span>
+          <span className="status-item">UTF-8</span>
+          <span className="status-item">Spaces: 4</span>
+        </div>
       </footer>
 
       <ArchitectureStory

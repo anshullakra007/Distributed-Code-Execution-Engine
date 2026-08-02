@@ -655,22 +655,25 @@
   background: var(--primary-hover, #79c0ff);
 }
 
-/* Landing Page Story Banner / Trigger Bar */
+/* Landing Page System Telemetry / Architecture Bar */
 .landing-story-banner {
-  background: linear-gradient(90deg, rgba(88, 166, 255, 0.12) 0%, rgba(31, 111, 235, 0.08) 50%, rgba(163, 113, 247, 0.12) 100%);
-  border-bottom: 1px solid rgba(88, 166, 255, 0.25);
-  padding: 10px 20px;
+  background: var(--bg-panel, #121215);
+  border-bottom: 1px solid var(--border, #27272a);
+  padding: 8px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
+  font-family: 'Inter', system-ui, sans-serif;
+  flex-shrink: 0;
 }
 
 .landing-story-banner:hover {
-  background: linear-gradient(90deg, rgba(88, 166, 255, 0.18) 0%, rgba(31, 111, 235, 0.14) 50%, rgba(163, 113, 247, 0.18) 100%);
+  background: var(--bg-hover, #18181b);
+  border-bottom-color: #3f3f46;
 }
 
 .landing-story-left {
@@ -679,42 +682,73 @@
   gap: 12px;
 }
 
-.story-live-badge {
-  background: #58a6ff;
-  color: #0d1117;
-  font-size: 0.7rem;
-  font-weight: 700;
+.telemetry-badge {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #10b981;
+  font-size: 0.68rem;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
   text-transform: uppercase;
   padding: 3px 8px;
   border-radius: 4px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  letter-spacing: 0.04em;
+}
+
+.telemetry-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+  display: inline-block;
+  animation: telemetryPulse 2s infinite ease-in-out;
+}
+
+@keyframes telemetryPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
 }
 
 .landing-story-text {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-main, #c9d1d9);
+  font-size: 0.825rem;
+  font-weight: 400;
+  color: var(--text-secondary, #a1a1aa);
 }
 
-.landing-story-text strong {
-  color: #58a6ff;
+.highlight-metric {
+  color: var(--text-main, #f4f4f5);
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border, #27272a);
 }
 
 .landing-story-right {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #58a6ff;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted, #71717a);
+  transition: color 0.2s ease;
 }
 
 .landing-story-right svg {
-  transition: transform 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--text-muted, #71717a);
+}
+
+.landing-story-banner:hover .landing-story-right {
+  color: var(--text-main, #f4f4f5);
 }
 
 .landing-story-banner:hover .landing-story-right svg {
-  transform: translateX(4px);
+  transform: translateX(3px);
+  color: var(--text-main, #f4f4f5);
 }

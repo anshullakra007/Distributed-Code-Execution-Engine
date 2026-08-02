@@ -3,19 +3,19 @@ import './ArchitectureStory.css';
 
 export function LandingStoryBanner({ onOpenStory }) {
   return (
-    <div className="landing-story-banner" onClick={onOpenStory} role="button" tabIndex={0}>
+    <div className="landing-story-banner" onClick={onOpenStory} role="button" tabIndex={0} title="Click to inspect CodeEngine's sandboxed microVM compilation and execution pipeline">
       <div className="landing-story-left">
-        <span className="story-live-badge">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor"/></svg>
-          Story Mode
-        </span>
+        <div className="telemetry-badge">
+          <span className="telemetry-dot"></span>
+          <span>SYSTEM TELEMETRY</span>
+        </div>
         <span className="landing-story-text">
-          How CodeEngine compiles & runs untrusted code in <strong>~70ms</strong> with zero security leaks.
+          Sandboxed microVMs compile &amp; execute untrusted code in <span className="highlight-metric">~70ms</span> with zero container leakage.
         </span>
       </div>
       <div className="landing-story-right">
-        <span>Explore the Real-Time Journey</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        <span>Inspect Pipeline &amp; Architecture</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </div>
     </div>
   );
