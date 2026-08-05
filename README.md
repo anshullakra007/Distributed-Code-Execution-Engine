@@ -4,6 +4,20 @@ A high-performance, distributed code execution engine that securely compiles and
 
 🚀 **Live Server & API:** [https://code-engine-api-wicb.onrender.com](https://code-engine-api-wicb.onrender.com)  
 📖 **Interactive Architecture Walkthrough:** Built-in real-time microVM & pipeline inspection in the editor header!
+---
+
+## 🎯 Problem Statement
+
+Executing untrusted, user-submitted code (like on LeetCode or HackerRank) is inherently dangerous. Standard web servers cannot safely compile and run arbitrary code without risking infinite loops, memory leaks, or malicious shell execution. The objective of this project was to build a highly scalable, distributed backend engine that securely sandboxes user code in ephemeral Docker containers, manages high-concurrency request spikes using asynchronous task queues, and returns execution outputs with near-zero overhead.
+
+## ✨ Core Features
+
+*   **Polyglot Execution:** Securely compiles and executes Java, C++, and Python code.
+*   **Docker Sandboxing:** Every execution is isolated within its own ephemeral Docker container with strict CPU and memory limits.
+*   **Asynchronous Processing:** Utilizes Java `CompletableFuture` and a bounded `ThreadPoolTaskExecutor` to handle concurrent execution requests without blocking the main API thread.
+*   **High Throughput:** Exhaustively benchmarked to sustain **130.64 requests/sec** under heavy load.
+
+---
 
 ## 🏗 System Architecture
 
