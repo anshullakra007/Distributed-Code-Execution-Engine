@@ -15,9 +15,10 @@
   --text-secondary: #94a3b8;
   --text-muted: #64748b;    
   
-  --primary: #3b82f6;
-  --primary-hover: #2563eb; 
-  --accent-indigo: #6366f1; 
+  --primary: #ffffff;
+  --primary-hover: #f8fafc; 
+  --primary-text: #0f1115;
+  --accent-indigo: #ffffff; 
   
   --success: #10b981;
   --error: #ef4444;
@@ -48,8 +49,9 @@
   --text-secondary: #475569;
   --text-muted: #64748b;
   
-  --primary: #3b82f6;
-  --primary-hover: #2563eb;
+  --primary: #0f172a;
+  --primary-hover: #1e293b;
+  --primary-text: #ffffff;
   
   --success: #059669;
   --error: #dc2626;
@@ -253,7 +255,7 @@ body {
 /* Primary IDE Run Button */
 .run-btn {
   background: var(--primary);
-  color: #ffffff;
+  color: var(--primary-text);
   border: none;
   padding: 0 16px;
   height: 36px;
@@ -270,7 +272,7 @@ body {
 }
 
 :root[data-theme='light'] .run-btn {
-  color: #ffffff;
+  color: var(--primary-text);
 }
 
 .run-btn:hover:not(:disabled) {
