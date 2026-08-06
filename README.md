@@ -97,7 +97,7 @@ python3 benchmark.py -c 20 -n 100 --all
 ```
 ---
 
-## 🌟 STAR Story: Distributed-Code-Execution-Engine
+## Why I built this ?
 
 **Situation:** 
 While building modern software applications, developing structured and scalable solutions is critical. The requirement was to build and maintain `Distributed-Code-Execution-Engine` to address specific technical challenges and provide a robust implementation.
