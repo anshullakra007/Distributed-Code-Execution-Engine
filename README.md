@@ -1,16 +1,16 @@
-# C 🚀
+# C 
 
 A -f, bu u uly l u uu C++, Jv, y l Dk v.
 
-🚀 **Lv Sv & AI:** [://---wb..](://---wb..) 
-📖 **Iv Au Wlku:** Bul- l- VM & l !
+ **Lv Sv & AI:** [://---wb..](://---wb..) 
+ **Iv Au Wlku:** Bul- l- VM & l !
 ---
 
-## 🎯 bl S
+##  bl S
 
 u uu, u-ub (lk LC HkRk) ly u. S wb v fly l u by wu k f l, y lk, lu ll u. T bv f w bul ly lbl, bu bk uly b u l Dk , -uy qu k u yu k quu, u u uu w -z v.
 
-## ✨ C Fu
+##  C Fu
 
 * **lyl u:** Suly l u Jv, C++, y .
 * **Dk Sb:** vy u l w w l Dk w CU y l.
@@ -19,7 +19,7 @@ u uu, u-ub (lk LC HkRk) ly u. S wb v fly l u by wu k f l, y lk, lu ll u. T bv f 
 
 ---
 
-## 🏗 Sy Au
+##  Sy Au
 
 ```
  TD
@@ -45,13 +45,13 @@ u uu, u-ub (lk LC HkRk) ly u. S wb v fly l u by wu k f l, y lk, lu ll u. T bv f 
  AI -->|HTT 200/408| Cl
 ```
 
-## 🛠 T Sk
+##  T Sk
 - **F:** R, V, M , Vll CSS (Ob & Z D Sy)
 - **Bk:** Jv 21, S B, k-v AI
 - **Ifuu:** Dk, Dk C
 - **f Tl:** GNU `` f y fl, Ay Tk Quu
 
-## 🛡 Suy & Sb Au
+##  Suy & Sb Au
 
 u uu u vly v R C u (RC) vulbly. T RC u 0% u lk u ly v, - Dk b l.
 
@@ -60,7 +60,7 @@ u uu u vly v R C u (RC) vulbly. T RC u 0% u lk u ly v, - Dk b l.
 - **Nwk Blkl:** Oubu wk ly bl (`NwkM: ""`). T lly ulz Sv-S Rqu Fy (SSRF) v b f b u DDS k.
 - **Nul Bku & T Il:** If v u ff AI, ubu f blk by u u `TlTku` (bu quu + `CllRuly`). T l CU lk.
 
-## ⚡ Quk S
+##  Quk S
 
 ### 1. Rqu
 - Dk Dk C ll
@@ -77,7 +77,7 @@ k- u - --bul
 ### 3. U
 Nv `://ll:8080` ( yu f ) C , l yu lu, u ly!
 
-### 4. 📊 f Bk & S T
+### 4.  f Bk & S T
 
 C w bk u ul-lu u wkl (`C++`, `Jv`, `y`) u l uu, Dk b ly, y quu bly.
 
