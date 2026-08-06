@@ -95,3 +95,18 @@ You can reproduce these benchmarks using the included Python load-testing script
 # Test 100 requests across 20 concurrent workers for all languages
 python3 benchmark.py -c 20 -n 100 --all
 ```
+---
+
+## 🌟 STAR Story: Distributed-Code-Execution-Engine
+
+**Situation:** 
+While building modern software applications, developing structured and scalable solutions is critical. The requirement was to build and maintain `Distributed-Code-Execution-Engine` to address specific technical challenges and provide a robust implementation.
+
+**Task:** 
+My goal was to engineer a reliable and efficient solution for `Distributed-Code-Execution-Engine`, ensuring clean architecture, maintainability, and alignment with project objectives (Remote Code Execution Engine with Spring Boot & Docker).
+
+**Action:** 
+I designed and implemented the core logic and project architecture, focusing on best practices in code organization and system design. I systematically tackled the problem by breaking down the requirements, writing modular code, and integrating necessary dependencies to bring the repository to life.
+
+**Result:** 
+The project successfully fulfilled its core requirements, serving as a functional codebase. It demonstrates a clear understanding of software engineering principles and provides a solid foundation for future scaling and feature additions.
