@@ -1,5 +1,21 @@
 # CodeEngine 
 
+## Why I built this ?
+
+### Situation
+Modern competitive programming platforms and online IDEs require secure, scalable environments to execute untrusted user code without compromising the host system.
+
+### Task
+I needed to engineer a remote code execution (RCE) engine capable of sandboxing code execution, managing resource limits (CPU/Memory), and streaming results back to the client in real-time.
+
+### Action
+I built a distributed architecture utilizing Spring Boot and Docker. I implemented a message queue to distribute execution tasks across multiple worker nodes, each spinning up isolated Docker containers (MicroVMs) to safely compile and run the untrusted payloads. 
+
+### Result
+The engine successfully executes code securely with minimal latency, properly handling infinite loops, memory leaks, and malicious system calls, effectively mimicking a production-grade LeetCode execution backend.
+
+---
+
 A high-performance, distributed code execution engine that securely compiles and runs untrusted C++, Java, and Python code in isolated Docker environments.
 
  Live Server & API: [https://code-engine-api-wicb.onrender.com](https://code-engine-api-wicb.onrender.com)  
@@ -96,17 +112,3 @@ You can reproduce these benchmarks using the included Python load-testing script
 python3 benchmark.py -c 20 -n 100 --all
 ```
 ---
-
-## Why I built this ?
-
-### Situation
-Modern competitive programming platforms and online IDEs require secure, scalable environments to execute untrusted user code without compromising the host system.
-
-### Task
-I needed to engineer a remote code execution (RCE) engine capable of sandboxing code execution, managing resource limits (CPU/Memory), and streaming results back to the client in real-time.
-
-### Action
-I built a distributed architecture utilizing Spring Boot and Docker. I implemented a message queue to distribute execution tasks across multiple worker nodes, each spinning up isolated Docker containers (MicroVMs) to safely compile and run the untrusted payloads. 
-
-### Result
-The engine successfully executes code securely with minimal latency, properly handling infinite loops, memory leaks, and malicious system calls, effectively mimicking a production-grade LeetCode execution backend.
