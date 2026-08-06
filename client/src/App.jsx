@@ -97,6 +97,7 @@ function App() {
     localStorage.setItem('language', language);
     localStorage.setItem('fontSize', fontSize);
     localStorage.setItem('theme', theme);
+    document.documentElement.setAttribute('data-theme', theme === 'vs-dark' ? 'dark' : 'light');
   }, [code, language, fontSize, theme]);
 
   const handleRun = useCallback(async () => {
@@ -191,7 +192,7 @@ function App() {
   };
 
   return (
-    <div className={`app-container ${theme}`}>
+    <div className="app-container">
       <header className="header">
         <div className="logo">
           <div className="logo-icon-wrapper">
