@@ -4,8 +4,6 @@
 
 A high-performance, distributed code execution engine that securely compiles and runs untrusted C++, Java, and Python code in isolated Docker environments.
 
- Live Server & API: [https://code-engine-api-wicb.onrender.com](https://code-engine-api-wicb.onrender.com)  
- Interactive Architecture Walkthrough: Built-in real-time microVM & pipeline inspection in the editor header!
 ---
 
 ## Problem Statement
