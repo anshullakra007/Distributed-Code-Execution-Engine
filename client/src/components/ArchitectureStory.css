@@ -93,9 +93,9 @@
 }
 
 .story-close-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border, #30363d);
-  color: var(--text-muted, #8b949e);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -115,14 +115,15 @@
 
 /* Simulation Action Banner */
 .story-sim-bar {
-  background: rgba(13, 17, 23, 0.7);
-  border-bottom: 1px solid var(--border, #30363d);
+  background: var(--bg-hover);
+  border-bottom: 1px solid var(--border);
   padding: 12px 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .story-sim-controls {
@@ -178,8 +179,8 @@
 }
 
 .sim-mode-btn.active {
-  background: var(--primary, #58a6ff);
-  color: #ffffff;
+  background: var(--primary);
+  color: var(--primary-text);
   font-weight: 600;
 }
 
@@ -211,8 +212,9 @@
 .story-chapters-nav {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  background: var(--bg-main, #0d1117);
-  border-bottom: 1px solid var(--border, #30363d);
+  background: var(--bg-main);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .chapter-tab {
@@ -357,12 +359,12 @@
 .chapter-narrative {
   font-size: 1.025rem;
   line-height: 1.65;
-  color: #adbac7;
+  color: var(--text-secondary);
   margin: 0;
 }
 
 .chapter-narrative strong {
-  color: #ffffff;
+  color: var(--text-main);
 }
 
 .chapter-highlights {
@@ -377,8 +379,8 @@
   align-items: flex-start;
   gap: 12px;
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
   border-radius: 10px;
 }
 
@@ -517,8 +519,8 @@
 }
 
 .sec-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border, #30363d);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 14px;
   display: flex;
@@ -538,7 +540,7 @@
 .sec-card-val {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-main);
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -621,9 +623,9 @@
 }
 
 .story-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--border, #30363d);
-  color: var(--text-main, #c9d1d9);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-main);
   padding: 8px 16px;
   border-radius: 8px;
   font-size: 0.85rem;
@@ -646,9 +648,9 @@
 }
 
 .story-btn.primary {
-  background: var(--primary, #58a6ff);
-  color: #ffffff;
-  border-color: var(--primary, #58a6ff);
+  background: var(--primary);
+  color: var(--primary-text);
+  border-color: var(--primary);
 }
 
 .story-btn.primary:hover:not(:disabled) {
