@@ -79,7 +79,7 @@ function App() {
     const lang = localStorage.getItem('language') || 'cpp';
     return localStorage.getItem(`savedCode_${lang}`) || BOILERPLATES[lang];
   });
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'vs-dark');
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [activePanel, setActivePanel] = useState('output');
@@ -89,6 +89,11 @@ function App() {
   const [cursor, setCursor] = useState({ line: 1, col: 1 });
   const [isStoryOpen, setIsStoryOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
+  
+  // Resizing State
+  const [leftWidth, setLeftWidth] = useState(60);
+  const [isDragging, setIsDragging] = useState(false);
 
   const editorRef = useRef(null);
 
@@ -97,7 +102,7 @@ function App() {
     localStorage.setItem('language', language);
     localStorage.setItem('fontSize', fontSize);
     localStorage.setItem('theme', theme);
-    document.documentElement.setAttribute('data-theme', theme === 'vs-dark' ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
   }, [code, language, fontSize, theme]);
 
   const handleRun = useCallback(async () => {
@@ -159,12 +164,39 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleRun]);
 
-  const handleLanguageChange = (e) => {
-    const newLang = e.target.value;
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isDragging) return;
+      const newWidth = (e.clientX / window.innerWidth) * 100;
+      if (newWidth > 20 && newWidth < 80) {
+        setLeftWidth(newWidth);
+      }
+    };
+    const handleMouseUp = () => {
+      if (isDragging) setIsDragging(false);
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      // Disable text selection during drag
+      document.body.style.userSelect = 'none';
+    } else {
+      document.body.style.userSelect = '';
+    }
+    
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
+
+  const handleLanguageSelect = (newLang) => {
     setLanguage(newLang);
     setCode(localStorage.getItem(`savedCode_${newLang}`) || BOILERPLATES[newLang]);
     setStats(null);
     setOutput('');
+    setIsLangDropdownOpen(false);
   };
 
   const handleDownload = () => {
@@ -184,6 +216,14 @@ function App() {
     setTimeout(() => setCopied(false), 1600);
   };
 
+  const handleZoomIn = () => setFontSize(f => Math.min(f + 2, 32));
+  const handleZoomOut = () => setFontSize(f => Math.max(f - 2, 8));
+  
+  const handleClearOutput = () => {
+    setOutput('');
+    setStats(null);
+  };
+
   const handleEditorMount = (editor) => {
     editorRef.current = editor;
     editor.onDidChangeCursorPosition(({ position }) => {
@@ -195,20 +235,37 @@ function App() {
     <div className="app-container">
       <header className="header">
         <div className="logo">
-          <div className="logo-icon-wrapper">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-          </div>
           <span className="logo-title">CodeEngine</span>
         </div>
         <div className="controls">
-          <div className="lang-select-wrapper">
-            <span className={`lang-dot ${language}`}></span>
-            <select value={language} onChange={handleLanguageChange} className="lang-select">
-              <option value="cpp">C++ (GCC 17)</option>
-              <option value="java">Java (JDK 21)</option>
-              <option value="python">Python 3.11</option>
-            </select>
-            <svg className="select-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+          <div className="custom-dropdown-container">
+            <button 
+              className="lang-select-btn" 
+              onClick={() => setIsLangDropdownOpen(!isLangDropdownOpen)}
+            >
+              <span className={`lang-dot ${language}`}></span>
+              <span className="lang-btn-text">
+                {language === 'cpp' ? 'C++ (GCC 17)' : language === 'java' ? 'Java (JDK 21)' : 'Python 3.11'}
+              </span>
+              <svg className={`select-chevron ${isLangDropdownOpen ? 'open' : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            
+            {isLangDropdownOpen && (
+              <>
+                <div className="dropdown-overlay" onClick={() => setIsLangDropdownOpen(false)}></div>
+                <div className="dropdown-menu">
+                  <button className={`dropdown-item ${language === 'cpp' ? 'active' : ''}`} onClick={() => handleLanguageSelect('cpp')}>
+                    <span className="lang-dot cpp"></span> C++ (GCC 17)
+                  </button>
+                  <button className={`dropdown-item ${language === 'java' ? 'active' : ''}`} onClick={() => handleLanguageSelect('java')}>
+                    <span className="lang-dot java"></span> Java (JDK 21)
+                  </button>
+                  <button className={`dropdown-item ${language === 'python' ? 'active' : ''}`} onClick={() => handleLanguageSelect('python')}>
+                    <span className="lang-dot python"></span> Python 3.11
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           <button className="run-btn" onClick={handleRun} disabled={isLoading} title="Run Code (⌘+Enter)">
@@ -224,8 +281,8 @@ function App() {
             <span>Architecture</span>
           </button>
 
-          <button className="icon-btn theme-btn" onClick={() => setTheme(t => t === 'vs-dark' ? 'light' : 'vs-dark')} title="Toggle Theme">
-            {theme === 'vs-dark' ? (
+          <button className="icon-btn theme-btn" onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} title="Toggle Theme">
+            {theme === 'dark' ? (
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
             ) : (
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -234,8 +291,8 @@ function App() {
         </div>
       </header>
 
-      <div className="workspace">
-        <div className="editor-panel">
+      <div className={`workspace ${isDragging ? 'resizing' : ''}`}>
+        <div className="editor-panel" style={{ width: `${leftWidth}%`, flex: 'none' }}>
           <div className="panel-header-row">
             <div className="editor-tab active">
               <span className={`lang-dot ${language}`}></span>
@@ -243,17 +300,26 @@ function App() {
               <span className="file-meta">UTF-8</span>
             </div>
             <div className="editor-actions">
+              <div className="zoom-controls">
+                <button onClick={handleZoomOut} title="Decrease Font Size">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+                <div className="zoom-divider"></div>
+                <button onClick={handleZoomIn} title="Increase Font Size">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+              </div>
               <button className="icon-btn" onClick={() => setCode(BOILERPLATES[language])} title="Reset to Boilerplate">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Reset
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Reset
               </button>
               <button className="icon-btn" onClick={handleDownload} title="Download Source File">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Save
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Save
               </button>
               <button className="icon-btn copy-btn" onClick={handleCopy} title="Copy Code to Clipboard">
                 {copied ? (
-                  <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span className="copied-text">Copied</span></>
+                  <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span className="copied-text">Copied</span></>
                 ) : (
-                  <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</>
+                  <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</>
                 )}
               </button>
             </div>
@@ -261,7 +327,7 @@ function App() {
           <Editor
             height="100%"
             language={language === 'cpp' ? 'cpp' : language}
-            theme={theme}
+            theme={theme === 'dark' ? 'vs-dark' : 'light'}
             value={code}
             onMount={handleEditorMount}
             onChange={(value) => setCode(value ?? '')}
@@ -283,26 +349,45 @@ function App() {
           />
         </div>
 
+        {/* The Invisible Magnetic Gutter */}
+        <div 
+          className={`resize-gutter ${isDragging ? 'dragging' : ''}`}
+          onMouseDown={() => setIsDragging(true)}
+          onDoubleClick={() => setLeftWidth(60)}
+          title="Drag to resize, double click to reset"
+        >
+          <div className="gutter-pill"></div>
+        </div>
+
         <div className="io-panel">
           <div className="io-tabs">
-            <button
-              className={`io-tab ${activePanel === 'input' ? 'active' : ''}`}
-              onClick={() => setActivePanel('input')}
-            >
-              <span>Input</span>
-            </button>
-            <button
-              className={`io-tab ${activePanel === 'output' ? 'active' : ''}`}
-              onClick={() => setActivePanel('output')}
-            >
-              <span>Output</span>
-              {stats && (
-                <span className={`tab-status-pill ${isErrorStatus(stats.status) ? 'error' : 'success'}`}>
-                  <span className="status-dot"></span>
-                  {statusLabel(stats.status)}
-                </span>
-              )}
-            </button>
+            <div style={{ display: 'flex', flex: 1 }}>
+              <button
+                className={`io-tab ${activePanel === 'input' ? 'active' : ''}`}
+                onClick={() => setActivePanel('input')}
+              >
+                <span>Input</span>
+              </button>
+              <button
+                className={`io-tab ${activePanel === 'output' ? 'active' : ''}`}
+                onClick={() => setActivePanel('output')}
+              >
+                <span>Output</span>
+                {stats && (
+                  <span className={`tab-status-pill ${isErrorStatus(stats.status) ? 'error' : 'success'}`}>
+                    <span className="status-dot"></span>
+                    {statusLabel(stats.status)}
+                  </span>
+                )}
+              </button>
+            </div>
+            
+            {/* IO Actions */}
+            <div className="editor-actions" style={{ paddingLeft: '8px' }}>
+              <button className="icon-btn" onClick={handleClearOutput} title="Clear Output">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+            </div>
           </div>
 
           {activePanel === 'input' ? (
@@ -337,10 +422,20 @@ function App() {
                     <span className="metric-label">Memory</span>
                     <span className="metric-value">{formatMemory(stats.memoryKb)}</span>
                   </div>
-                  <div className="metric-item">
-                    <span className="metric-label">Total</span>
+                  <div className="metric-item" title="Time taken inside the execution sandbox">
+                    <span className="metric-label">Sandbox Time</span>
                     <span className="metric-value">{formatMs(stats.totalTimeMs)}</span>
                   </div>
+                  <div className="metric-item" title="Includes network latency and server cold-starts">
+                    <span className="metric-label">True Roundtrip</span>
+                    <span className="metric-value">{formatMs(stats.clientRoundTripMs)}</span>
+                  </div>
+                  {stats.clientRoundTripMs - stats.totalTimeMs > 2000 && (
+                    <div className="metric-item" title="The server was sleeping and had to wake up">
+                      <span className="metric-label">Cold Start Delay</span>
+                      <span className="metric-value warning">{formatMs(stats.clientRoundTripMs - stats.totalTimeMs)}</span>
+                    </div>
+                  )}
                   {stats.exitCode != null && (
                     <div className="metric-item">
                       <span className="metric-label">Exit Code</span>
