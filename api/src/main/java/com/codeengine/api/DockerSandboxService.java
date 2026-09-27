@@ -23,9 +23,11 @@ public class DockerSandboxService {
     private static final int COMPILE_TIMEOUT_SEC = 10;
     private static final int RUN_TIMEOUT_SEC = 5;
     private static final String SHARED_TMP_DIR = "/tmp/codeengine_sandboxes";
+    private final boolean isNativeMode = "native".equalsIgnoreCase(System.getenv("SANDBOX_MODE"));
 
     @PostConstruct
     public void initPreWarmedPool() {
+        if (isNativeMode) return;
         try {
             // Ensure the shared directory exists
             new File(SHARED_TMP_DIR).mkdirs();
@@ -43,6 +45,7 @@ public class DockerSandboxService {
 
     @PreDestroy
     public void cleanupPreWarmedPool() {
+        if (isNativeMode) return;
         try {
             runProcess(new String[]{"docker", "stop", "codeengine-cpp", "codeengine-java", "codeengine-python"}, new File("."), 10);
         } catch (Exception ignored) {}
@@ -142,9 +145,11 @@ public class DockerSandboxService {
     private void cleanupTask(File workDir) {
         if (workDir.exists()) {
             try {
-                // Since containers run as root, files like the C++ `solution` binary will be owned by root.
-                // We use docker exec to delete the directory to avoid permission denied errors on the host.
-                runProcess(new String[]{"docker", "exec", "codeengine-cpp", "rm", "-rf", workDir.getAbsolutePath()}, new File("."), 5);
+                if (!isNativeMode) {
+                    // Since containers run as root, files like the C++ `solution` binary will be owned by root.
+                    // We use docker exec to delete the directory to avoid permission denied errors on the host.
+                    runProcess(new String[]{"docker", "exec", "codeengine-cpp", "rm", "-rf", workDir.getAbsolutePath()}, new File("."), 5);
+                }
             } catch (Exception ignored) {}
             
             // Fallback to Java deletion just in case
@@ -169,6 +174,13 @@ public class DockerSandboxService {
     }
 
     private String[] getCompileCommand(String language, String workDir) {
+        if (isNativeMode) {
+            return switch (language) {
+                case "cpp" -> new String[]{"sh", "-c", String.format("cd %s && g++ -std=c++17 -O0 -Wall -o solution Solution.cpp", workDir)};
+                case "java" -> new String[]{"sh", "-c", String.format("cd %s && javac Main.java", workDir)};
+                default -> null;
+            };
+        }
         return switch (language) {
             case "cpp" -> new String[]{"docker", "exec", "-w", workDir, "codeengine-cpp", "g++", "-std=c++17", "-O0", "-Wall", "-o", "solution", "Solution.cpp"};
             case "java" -> new String[]{"docker", "exec", "-w", workDir, "codeengine-java", "javac", "Main.java"};
@@ -179,6 +191,15 @@ public class DockerSandboxService {
     private String[] getRunCommand(String language, String workDir, boolean hasInput) {
         String inputRedirect = hasInput ? " < input.txt" : "";
         
+        if (isNativeMode) {
+            return switch (language) {
+                case "cpp" -> new String[]{"sh", "-c", String.format("cd %s && ./solution%s", workDir, inputRedirect)};
+                case "java" -> new String[]{"sh", "-c", String.format("cd %s && java Main%s", workDir, inputRedirect)};
+                case "python" -> new String[]{"sh", "-c", String.format("cd %s && python3 script.py%s", workDir, inputRedirect)};
+                default -> new String[]{"echo", "error"};
+            };
+        }
+
         return switch (language) {
             case "cpp" -> new String[]{"docker", "exec", "-w", workDir, "codeengine-cpp", "sh", "-c", "./solution" + inputRedirect};
             case "java" -> new String[]{"docker", "exec", "-w", workDir, "codeengine-java", "sh", "-c", "java Main" + inputRedirect};
