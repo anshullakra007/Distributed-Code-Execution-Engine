@@ -14,12 +14,39 @@ import java.io.InputStream;
 import java.io.ByteArrayOutputStream;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 
 @Service
 public class DockerSandboxService {
 
     private static final int COMPILE_TIMEOUT_SEC = 10;
     private static final int RUN_TIMEOUT_SEC = 5;
+    private static final String SHARED_TMP_DIR = "/tmp/codeengine_sandboxes";
+
+    @PostConstruct
+    public void initPreWarmedPool() {
+        try {
+            // Ensure the shared directory exists
+            new File(SHARED_TMP_DIR).mkdirs();
+
+            // Forcefully remove any lingering containers from previous crashed runs
+            runProcess(new String[]{"docker", "rm", "-f", "codeengine-cpp", "codeengine-java", "codeengine-python"}, new File("."), 10);
+
+            // Start pre-warmed "zombie" containers for each language
+            // These sleep infinitely, waiting for code to be injected via docker exec
+            runProcess(new String[]{"docker", "run", "-d", "--rm", "--name", "codeengine-cpp", "--network", "none", "--memory", "256m", "-v", SHARED_TMP_DIR + ":" + SHARED_TMP_DIR, "gcc:latest", "sleep", "infinity"}, new File("."), 120);
+            runProcess(new String[]{"docker", "run", "-d", "--rm", "--name", "codeengine-java", "--network", "none", "--memory", "256m", "-v", SHARED_TMP_DIR + ":" + SHARED_TMP_DIR, "openjdk:21-slim", "sleep", "infinity"}, new File("."), 120);
+            runProcess(new String[]{"docker", "run", "-d", "--rm", "--name", "codeengine-python", "--network", "none", "--memory", "256m", "-v", SHARED_TMP_DIR + ":" + SHARED_TMP_DIR, "python:3.11-slim", "sleep", "infinity"}, new File("."), 120);
+        } catch (Exception ignored) {}
+    }
+
+    @PreDestroy
+    public void cleanupPreWarmedPool() {
+        try {
+            runProcess(new String[]{"docker", "stop", "codeengine-cpp", "codeengine-java", "codeengine-python"}, new File("."), 10);
+        } catch (Exception ignored) {}
+    }
 
     public ExecutionResult executeCode(String language, String code, String input) {
         long totalStart = System.nanoTime();
@@ -29,7 +56,7 @@ public class DockerSandboxService {
         }
 
         String taskId = UUID.randomUUID().toString();
-        File workDir = new File(System.getProperty("java.io.tmpdir"), "sandbox-" + taskId);
+        File workDir = new File(SHARED_TMP_DIR, "sandbox-" + taskId);
         
         try {
             if (!workDir.mkdirs()) {
@@ -48,51 +75,28 @@ public class DockerSandboxService {
             ExecutionResult result = new ExecutionResult();
             long compileTimeMs = 0;
 
-            if (language.equals("java")) {
-                JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-                if (compiler == null) {
-                    return ExecutionResult.error("JavaCompiler is not available in this environment.");
-                }
-                long compStart = System.nanoTime();
-                
-                // Redirect compiler output to capture errors
-                ByteArrayOutputStream errStream = new ByteArrayOutputStream();
-                int compResult = compiler.run(null, null, errStream, workDir.getAbsolutePath() + "/Main.java");
-                
-                compileTimeMs = elapsedMs(compStart);
-                if (compResult != 0) {
-                    result.setStatus(ExecutionResult.Status.COMPILATION_ERROR);
-                    result.setError(trimToEmpty(errStream.toString(StandardCharsets.UTF_8)));
+            String[] compileCmd = getCompileCommand(language, workDir.getAbsolutePath());
+            if (compileCmd != null) {
+                ExecResult compile = runProcess(compileCmd, workDir, COMPILE_TIMEOUT_SEC);
+                compileTimeMs = compile.elapsedMs;
+
+                if (!compile.finished) {
+                    result.setStatus(ExecutionResult.Status.TIME_LIMIT_EXCEEDED);
+                    result.setError("Compilation timed out.");
                     result.setCompileTimeMs(compileTimeMs);
-                    result.setExitCode(compResult);
                     result.setTotalTimeMs(elapsedMs(totalStart));
                     cleanupTask(workDir);
                     return result;
                 }
-            } else {
-                String[] compileCmd = getCompileCommand(language, workDir.getAbsolutePath());
-                if (compileCmd != null) {
-                    ExecResult compile = runProcess(compileCmd, workDir, COMPILE_TIMEOUT_SEC);
-                    compileTimeMs = compile.elapsedMs;
 
-                    if (!compile.finished) {
-                        result.setStatus(ExecutionResult.Status.TIME_LIMIT_EXCEEDED);
-                        result.setError("Compilation timed out.");
-                        result.setCompileTimeMs(compileTimeMs);
-                        result.setTotalTimeMs(elapsedMs(totalStart));
-                        cleanupTask(workDir);
-                        return result;
-                    }
-
-                    if (compile.exitCode != 0) {
-                        result.setStatus(ExecutionResult.Status.COMPILATION_ERROR);
-                        result.setError(trimToEmpty(compile.error.isEmpty() ? compile.output : compile.error));
-                        result.setCompileTimeMs(compileTimeMs);
-                        result.setExitCode(compile.exitCode);
-                        result.setTotalTimeMs(elapsedMs(totalStart));
-                        cleanupTask(workDir);
-                        return result;
-                    }
+                if (compile.exitCode != 0) {
+                    result.setStatus(ExecutionResult.Status.COMPILATION_ERROR);
+                    result.setError(trimToEmpty(compile.error.isEmpty() ? compile.output : compile.error));
+                    result.setCompileTimeMs(compileTimeMs);
+                    result.setExitCode(compile.exitCode);
+                    result.setTotalTimeMs(elapsedMs(totalStart));
+                    cleanupTask(workDir);
+                    return result;
                 }
             }
 
@@ -138,10 +142,19 @@ public class DockerSandboxService {
     private void cleanupTask(File workDir) {
         if (workDir.exists()) {
             try {
-                Files.walk(workDir.toPath())
-                     .sorted(java.util.Comparator.reverseOrder())
-                     .map(Path::toFile)
-                     .forEach(File::delete);
+                // Since containers run as root, files like the C++ `solution` binary will be owned by root.
+                // We use docker exec to delete the directory to avoid permission denied errors on the host.
+                runProcess(new String[]{"docker", "exec", "codeengine-cpp", "rm", "-rf", workDir.getAbsolutePath()}, new File("."), 5);
+            } catch (Exception ignored) {}
+            
+            // Fallback to Java deletion just in case
+            try {
+                if (workDir.exists()) {
+                    Files.walk(workDir.toPath())
+                         .sorted(java.util.Comparator.reverseOrder())
+                         .map(Path::toFile)
+                         .forEach(File::delete);
+                }
             } catch (IOException ignored) {}
         }
     }
@@ -157,17 +170,19 @@ public class DockerSandboxService {
 
     private String[] getCompileCommand(String language, String workDir) {
         return switch (language) {
-            case "cpp" -> new String[]{"sh", "-c", String.format("cd %s && g++ -std=c++17 -O0 -Wall -o solution Solution.cpp", workDir)};
+            case "cpp" -> new String[]{"docker", "exec", "-w", workDir, "codeengine-cpp", "g++", "-std=c++17", "-O0", "-Wall", "-o", "solution", "Solution.cpp"};
+            case "java" -> new String[]{"docker", "exec", "-w", workDir, "codeengine-java", "javac", "Main.java"};
             default -> null;
         };
     }
 
     private String[] getRunCommand(String language, String workDir, boolean hasInput) {
         String inputRedirect = hasInput ? " < input.txt" : "";
+        
         return switch (language) {
-            case "cpp" -> new String[]{"sh", "-c", String.format("cd %s && /usr/bin/time -v ./solution%s", workDir, inputRedirect)};
-            case "java" -> new String[]{"sh", "-c", String.format("cd %s && /usr/bin/time -v java Main%s", workDir, inputRedirect)};
-            case "python" -> new String[]{"sh", "-c", String.format("cd %s && /usr/bin/time -v python3 script.py%s", workDir, inputRedirect)};
+            case "cpp" -> new String[]{"docker", "exec", "-w", workDir, "codeengine-cpp", "sh", "-c", "./solution" + inputRedirect};
+            case "java" -> new String[]{"docker", "exec", "-w", workDir, "codeengine-java", "sh", "-c", "java Main" + inputRedirect};
+            case "python" -> new String[]{"docker", "exec", "-w", workDir, "codeengine-python", "sh", "-c", "python3 script.py" + inputRedirect};
             default -> new String[]{"echo", "error"};
         };
     }

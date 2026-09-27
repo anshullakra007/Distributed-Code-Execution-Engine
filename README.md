@@ -72,7 +72,7 @@ Bring up the frontend and backend simultaneously using Docker Compose:
 docker-compose up -d --build
 ```
 
-*(Note: The `app` container mounts `/var/run/docker.sock` to seamlessly manage the pre-warmed sandbox containers on your host machine).*
+*(Note: The `app` container mounts `/var/run/docker.sock` and `/tmp/codeengine_sandboxes` to seamlessly manage and share files with the pre-warmed sandbox containers on your host machine).*
 
 ### 3. Usage
 Navigate to `http://localhost:8080` (or your mapped frontend port) to access the Code Editor, select your language, and run code instantly!
